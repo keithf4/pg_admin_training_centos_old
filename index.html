@@ -140,6 +140,7 @@
 
                 </section>
 
+                <!-- VM Snapshot -->
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Create Role & Database</h2>
@@ -149,7 +150,7 @@
                         <pre><code data-trim>
                             sudo su - postgres</pre>
                         </code></pre>
-                        <li>Log into database (default postgres role & database already created)</li>
+                        <li>Log into database (default postgres role &amp; database already created)</li>
                         <pre><code data-trim>psql</code></pre>
                         <ul>
                             <li>\? to see all available commands</li>
@@ -200,10 +201,11 @@
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Configuration - pg_hba.conf</h2>
                     <ul>
-                        <li>Create following line for later:</li>
+                        <li>Create following lines for later:</li>
                         <pre><code data-trim>
                             # TYPE  DATABASE       USER           ADDRESS         METHOD
                             host    replication    replication    127.0.0.1/32    md5
+                            host    replication    training       127.0.0.1/32    trust 
                         </code></pre>
                         <li>Only requires a reload to put new HBA settings into place</li>
                         <pre><code data-trim>
@@ -250,31 +252,32 @@
                 </section>
 
 
-                <section data-background="css/theme/omniti_bg_logo.png">
+				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Configuration - postgresql.conf</h2>
                     <div id="li30">
-                        <ul style="font-size:25px;">
+                        <ul style="font-size:22px;">
                             <li>Important secondary settings review (all only require reload)</li>
                             <ul>
-                                <li>checkpoint_segments = 30  (good starting point, check logs for warnings)</li>
-                                <li>checkpoint_timeout = 5min (default, good starting point, check logs for warnings)</li>
-                                <li>checkpoint_completion_target = 0.9</li>
-                                <li>log_filename = 'postgresql-%Y-%m-%d.log'</li>
-                                <li>log_min_duration_statement = 5000ms  (beware setting too low. can fill logs fast)</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-wal.html#GUC-MAX-WAL-SIZE" target="_blank">max_wal_size</a> = 1GB (default; hitting this forces checkpoint)
+                                    <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-wal.html#GUC-MIN-WAL-SIZE" target="_blank">min_wal_size</a> = 80MB (default; WAL kept for recycling)</li>
+                                    <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-wal.html#GUC-CHECKPOINT-TIMEOUT" target="_blank">checkpoint_timeout</a> = 5min (default; good starting point)</li>
+                                    <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-wal.html#GUC-CHECKPOINT-COMPLETION-TARGET" target="_blank">checkpoint_completion_target</a> = 0.9</li>
+                                    <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-logging.html#GUC-LOG-FILENAME" target="_blank">log_filename</a> = 'postgresql-%Y-%m-%d.log'</li>
+                                    <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-logging.html#GUC-LOG-MIN-DURATION-STATEMENT" target="_blank">log_min_duration_statement</a> = 5000ms  (beware setting too low. can fill logs fast)</li>
                                 <li>log_connections = on</li>
                                 <li>log_disconnections = on</li>
-                                <li>log_line_prefix = '%m [%r] [%p]: [l-%l] user=%u,db=%d,e=%e '</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-logging.html#GUC-LOG-LINE-PREFIX" target="_blank">log_line_prefix</a> = '%m [%r] [%p]: [l-%l] user=%u,db=%d,e=%e '</li>
                                 <ul>
                                     <li>%x &amp; %v can be good for transaction tracking</li>
                                 </ul>
-                                <li>log_temp_files = 10240  (good starting point = work_mem)</li>
-                                <li>autovacuum_vacuum_threshold = 500  (default too aggressive)</li>
-                                <li>autovacuum_analyze_threshold = 500  (default too aggressive)</li>
-                                <li>autovacuum_vacuum_scale_factor = 0.1  (default too mild)</li>
-                                <li>autovacuum_analyze_scale_factor = 0.05  (default too mild)</li>
+                                <li>log_temp_files = 4096 (kilobytes; good starting point = work_mem)</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-VACUUM-THRESHOLD" target="_blank">autovacuum_vacuum_threshold</a> = 500  (default too aggressive)</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-ANALYZE-THRESHOLD" target="_blank">autovacuum_analyze_threshold</a> = 500  (default too aggressive)</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-VACUUM-SCALE-FACTOR" target="_blank">autovacuum_vacuum_scale_factor</a> = 0.1  (default too mild)</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-ANALYZE-SCALE-FACTOR" target="_blank">autovacuum_analyze_scale_factor</a> = 0.05  (default too mild)</li>
                             </ul>
                             <li>Restart postgresql to put all new settings into place (as training user)</li>
-                            <pre style="font-size:20px;">sudo service postgresql-10 restart</pre>
+                            <pre style="font-size:16px;">sudo systemctl restart postgresql-10</pre>
                             <li>If restart unsuccessful, check postgresql log files</li>
                         </ul>
                     </div>
@@ -284,16 +287,16 @@
                 </section>
 
 
-                <section data-background="css/theme/omniti_bg_logo.png">
+				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Vacuums & Freezing</h2>
                     <div id="li30">
                         <ul style="font-size:25px;">
-                            <li><a href="http://www.postgresql.org/docs/9.3/static/routine-vacuuming.html" target="_blank">http://www.postgresql.org/docs/9.3/static/routine-vacuuming.html</a></li>
+                            <li><a href="http://www.postgresql.org/docs/10/static/routine-vacuuming.html" target="_blank">http://www.postgresql.org/docs/10/static/routine-vacuuming.html</a></li>
                             <li>Multi-Version Currency Control (MVCC)</li>
                             <ul>
                                 <li>Updated/Deleted rows not actually deleted. Just marked unavailable.</li>
                                 <li>Vacuum marks unavailable rows as re-usable space. <a href="http://www.keithf4.com/checking-for-postgresql-bloat/" target="_blank">Leads to bloat.</a></li>
-                                <li>VACUUM FULL recovers disk space but locks table</li>
+                                <li>VACUUM FULL recovers disk space but locks table with full table rewrite</li>
                                 <li><a href="http://reorg.github.io" target="_blank">pg_repack</a> - Extension to reclaim disk space with minimal lock</li>
                                 <li>Don’t overuse VACUUM FULL or pg_repack. </li>
                                 <ul>
@@ -320,28 +323,33 @@
                     </div>
                 </section>
 
+                <!-- VM Snapshot -->
 
-                <section data-background="css/theme/omniti_bg_logo.png">
+				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Setup Replication - Basic</h2>
                     <ul style="font-size:30px;">
                         <li>Ensure line exists in master pg_hba.conf and reload master</li>
-                        <pre>host        replication     replication        127.0.0.1/32            md5</pre>
+                        <pre><code data-trim>
+                            host    replication    replication    127.0.0.1/32    md5
+                        </code></pre>
                         <li>Use pg_basebackup to do a backup of master (as postgres system user)</li>
                         <ul>
-                            <li><a href="http://www.postgresql.org/docs/9.3/static/app-pgbasebackup.html" target="_blank">http://www.postgresql.org/docs/9.3/static/app-pgbasebackup.html</a></li>
-                            <pre>pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/9.3/slave -R -Xs -P -v</pre>
-                        <li>Edit slave postgresql.conf </li>
-<pre>
-port = 5488 (doesn’t matter when using CentOS init.d)
-hot_standby = on
-</pre>
-                        <li>Edit slave recovery.conf</li>
-<pre>
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=5432 user=replication password=password'
-trigger_file = '/var/lib/pgsql/9.3/slave/finish.recovery'
-recovery_target_timeline='latest'
-</pre>
+                            <li><a href="http://www.postgresql.org/docs/10/static/app-pgbasebackup.html" target="_blank">http://www.postgresql.org/docs/10/static/app-pgbasebackup.html</a></li>
+                        <pre><code data-trim>
+                            sudo su - postgres
+                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/replica -R -Xs -P -v</pre>
+                        </code></pre>
+                        <li>Edit replica postgresql.conf </li>
+                        <pre><code data-trim>
+                            port = 5444 
+                            hot_standby = on
+                        </code></pre>
+                        <li>Edit replica recovery.conf</li>
+                        <pre><code data-trim>
+                            standby_mode = 'on'
+                            primary_conninfo = 'host=127.0.0.1 port=5432 user=replication password=password'
+                            recovery_target_timeline='latest'
+                        </code></pre>
 
                     </ul>
                     <aside class="notes">
@@ -349,56 +357,335 @@ recovery_target_timeline='latest'
                     </aside>
                 </section>
 
+                <!-- VM Snapshot -->
 
-                <section data-background="css/theme/omniti_bg_logo.png">
+				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Setup Replication - Basic</h2>
                     <ul>
                         <li>Production method for CentOS</li>
-                        <li>Create new /etc/init.d/postgresql-9.3 config file for slave</li>
-                        <pre>sudo cp /etc/init.d/postgresql-9.3 /etc/init.d/postgresql-9.3-5488</pre>
-                        <li>Edit config file to change (as root):</li>
-<pre>
-PGPORT=5488 
-PGDATA=/var/lib/pgsql/9.3/slave
-PGLOG=/var/lib/pgsql/9.3/pgstartup-5488.log
-PGUPLOG=/var/lib/pgsql/$PGMAJORVERSION/pgupgrade-5488.log
-</pre>
-                        <li>Register service, start up slave & ensure it connects to master (as training user)</li>
-<pre>
-sudo chkconfig postgresql-9.3-5488 on
-sudo service postgresql-9.3-5488 start
-</pre>
+                        <li>Create new systemd service for replica</li>
+                        <pre><code data-trim>
+                            sudo cp /usr/lib/systemd/system/postgresql-10.service /etc/systemd/system/postgresql-10-replica.service
+                        </code></pre>
+                        <li><a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/system_administrators_guide/chap-Managing_Services_with_systemd#tabl-Managing_Services_with_systemd-Introduction-Units-Locations" target="_blank">See systemd service file locations</a></li>
+                        <li>Edit config file to set replica data directory (as root):</li>
+                        <pre><code data-trim>
+                            Environment=PGDATA=/var/lib/pgsql/10/replica/
+                        </code></pre>
+                        <li>Register service, start up replica &amp; and check service status</li>
+                        <pre><code data-trim>
+                            sudo systemctl daemon-reload
+                            sudo systemctl enable postgresql-10-replica
+                            sudo systemctl start postgresql-10-replica
+                            sudo systemctl status postgresql-10-replica
+                        </code></pre>
                     </ul>
                 </section>
 
+                <!-- VM Snapshot -->
 
-                <section data-background="css/theme/omniti_bg_logo.png">
+				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Setup Replication - Basic</h2>
                     <ul>
-                        <li>Check slave log to ensure it connected</li>
-                        <pre>started streaming WAL from primary at 0/3000000 on timeline 1</pre>
+                        <li>Check replica log to ensure it connected</li>
+                        <pre><code data-trim>
+                            started streaming WAL from primary at 0/3000000 on timeline 1
+                        </code></pre>
                         <li>Check from master</li>
-                        <pre>select * from pg_stat_replication;</pre>
-                        <li>Create an object and make sure it appears on slave (as training user)</li>
-<pre>training=# CREATE TABLE testing (
-            id serial primary key, 
-            stuff text, 
-            inserted_at timestamptz default now());
-</pre>
-                        <li>Connect to slave</li>
-                        <pre>psql -p 5488</pre>
+                        <pre><code data-trim>
+                            select * from pg_stat_replication;
+                        </code></pre>
+                        <li>Create an object and make sure it appears on replica (as training user)</li>
+                        <pre><code data-trim>
+                            CREATE TABLE testing (
+                                id serial primary key, 
+                                stuff text, 
+                                inserted_at timestamptz default now());
+                        </code></pre>
+                        <li>Connect to replica</li>
+                        <pre><code data-trim>
+                            psql -p 5444
+                        </code></pre>
                     </ul>
                 </section>
 
+                <!-- VM Snapshot -->
 
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Backup - pg_dump/all</h2>
+                    <div id="li30">
+                        <ul style="font-size:25px;">
+                            <li>pg_dumpall</li>
+                            <ul>
+                                <li>Dumps all databases in cluster in plaintext format</li>
+                                <li>Can dump only cluster-wide data: roles, tablespaces</li>
+                                <pre><code data-trim>
+                                    pg_dumpall -g -f /home/training/globals.sql -v
+                                </code></pre>
+                                <li>Use psql to restore backup</li>
+                                <li>Restores entire cluster. No object filtering options.</li>
+                                <li>Dump only roles and/or tablespaces (cluster-wide objects)</li>
+                            </ul>
+                            <li>pg_dump</li>
+                            <ul>
+                                <li>Backs up individual databases in cluster</li>
+                                <li>Does not back up roles or tablespaces, but does back up object privileges of those roles.</li>
+                                <li>Use pg_restore to restore binary backups</li>
+                                <li>Provides binary backup format that can make restore easier</li>
+                                <li>Can restore individual schemas or tables instead of entire cluster</li>
+                                <pre><code data-trim>
+                                    pg_dump -Fc training -f /home/training/training.pgr -v
+                                </code></pre>
+                            </ul>
+                        </ul>
+                    </div>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Restore - pg_restore</h2>
+                        <ul style="font-size:23px;line-height:28px">
+                            <li>As training user, create new database in home folder</li>
+                            <pre><code data-trim style="font-size:14px;">
+                                mkdir /home/training/mydb
+                                chmod 700 /home/training/mydb
+                                /usr/pgsql-10/bin/initdb -D /home/training/mydb
+                            </code></pre>
+                            <li>Edit postgresql.conf:</li>
+                            <pre><code data-trim style="font-size:14px;">
+                                    port = 5888
+                                    unix_socket_directories = '/home/training/mydb'
+                            </code></pre>
+                            <li>Start the DB</li>
+                            <pre><code data-trim style="font-size:14px;">
+                                /usr/pgsql-10/bin/pg_ctl -D /home/training/mydb start
+                            </code></pre>
+                            <li>Automatically made role “training”</li>
+                            <li>psql used to restore pg_dumpall or plaintext version of pg_dump</li>
+                            <ul>
+                                <li>Restore roles before restoring database so permissions are set properly</li>
+                            </ul>
+                            <pre><code data-trim style="font-size:14px">
+                                psql -h localhost -p 5888 -d postgres -f /home/training/globals.sql -a
+                            </code></pre>
+                            <li>pg_restore used to restore binary dump from pg_dump</li>
+                            <pre><code data-trim style="font-size:14px">
+                                psql -h localhost -p 5888 postgres
+                                postgres=# create database new_training;
+                                pg_restore -h localhost -p 5888 -d new_training -v /home/training/training.pgr
+                            </code></pre>
+                        </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Restore - pg_restore</h2>
+                    <ul>
+                        <li>Smaller backups &amp; more flexible restore</li>
+                        <li>Must recreate all indexes &amp; constraints</li>
+                        <li>Stop this instance and delete it</li>
+                        <pre><code data-trim style="font-size:14px">
+                            /usr/pgsql-10/bin/pg_ctl stop -m fast -D /home/training/mydb
+                            rm -r /home/training/mydb
+                        </code></pre>
+                    </ul>
+
+                </section>
+
+                <!-- VM Snapshot -->
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Backup - File System (Basic)</h2>
+                    <h4>pg_basebackup</h4>
+                    <ul>
+                        <li>We already did it! Let's do it again...</li>
+                        <li>Create compressed backup</li>
+                        <pre><code data-trim>
+                            mkdir /home/training/mybackup
+                            pg_basebackup -h 127.0.0.1 -D /home/training/mybackup -Ft -z -Xs -P -v
+                        </code></pre>
+                        <li>Separate tar file is made for necessary WAL files</li>
+                        <li>If additional tablespaces, they go in their own tar file</li>
+                        <li>Do not set -R for normal backups</li>
+                        <li>-Xs (--wal-method=stream) is default for PG10+</li>
+                        <ul>
+                            <li>-Xf (fetch) only works if all WAL generated during backup run exist at the end of the backup</li>
+                            <li>Can require extremely high wal_keep_segements on a busy database</li>
+                            <li>-Xs does require one additional wal sender being available (max_wal_senders)</li>
+                        </ul>
+                    </ul>    
+                </section>
+<!-- OLD OMNIPITR method kept for record. Remove at end 
+                <section data-background="css/theme/omniti_bg_logo.png">
+                    <h2>Backup - File System</h2>
+                    <div id="li30">
+                        <ul style="font-size:22px;">
+                            <li>Basic file system backup</li>
+                            <ul>
+                                <li>pg_start_backup() -&gt; copy all files -&gt; pg_stop_backup()</li>
+                            </ul>
+                            <li>Omnipitr</li>
+                            <ul>
+                                <li>Set dst-backup (-db) option in archive_command (location does not exist)</li>
+<pre style="font-size:18px">
+archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data -dl gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/data/pg_log/state -db /var/lib/pgsql/9.3/backups/dst-backup "%p"'
+</pre>
+                                <ul>
+                                    <li>When backup is run, this dir is created to hold WAL files needed for consistent backup</li>
+                                    <li>Same use as -X option to pg_basebackup</li>
+                                </ul>
+                                <li>pg_reload_conf()</li>
+                                <li>Need to install Perl SHA library (as training user)</li>
+<pre style="font-size:18px">sudo yum install perl-Digest-SHA.x86_64</pre>
+                                <li>Run omnipitr-backup-master (as postgres system user)</li>
+<pre style="font-size:18px">
+/opt/omnipitr/bin/omnipitr-backup-master -D /var/lib/pgsql/9.3/data -x /var/lib/pgsql/9.3/backups/dst-backup -dl gzip=/var/lib/pgsql/9.3/backups -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-backup-master-^Y-^m-^d.log -v -dg SHA-512
+</pre>
+                            </ul>
+                        </ul>    
+                    </div>
+                </section>
+                -->
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Restore - File System (Basic)</h2>
+                    <div id="li30">
+                        <ul>
+                            <li>We already did it! Let's do it again...</li>
+                            <pre><code data-trim>
+                                mkdir /home/training/mydb2
+                                chmod 700 /home/training/mydb2
+                            </code></pre>
+                            <pre><code data-trim>
+                                tar xvzf /home/training/mybackup/base.tar.gz -C /home/training/mydb2/
+                                tar xvzf /home/training/mybackup/pg_wal.tar.gz -C /home/training/mydb2/pg_wal
+                            </code></pre>
+                            <pre><code data-trim>
+                                EDIT postgresql.conf: 
+                                    port = 5888
+                                    unix_socket_directories = '/home/training/mydb2'
+                            </code></pre>
+                            <pre><code data-trim>
+                                /usr/pgsql-10/bin/pg_ctl -D /home/training/mydb2 start
+
+                                psql -h localhost -p 5888 postgres
+                                (requires hba fix)
+                            </code></pre>
+                        </ul>
+                    </div>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Restore - File System (Basic)</h2>
+                    <ul>
+                        <li>MUCH faster disaster recovery</li>
+                        <li>Less flexible restore options (all or nothing)</li>
+                        <li>Stop this instance and delete it</li>
+                        <pre><code data-trim>
+                            /usr/pgsql-10/bin/pg_ctl stop -m fast -D /home/training/mydb2
+                            rm -r /home/training/mydb2
+                        </code></pre>
+                    </ul>
+
+                </section>
+
+                <!-- VM Snapshot -->
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Backup - File System (Advanced)</h2>
+                    <ul>
+                        <li>PGBackRest - <a href="http://pgbackrest.org" target="_blank">http://pgbackrest.org</a></li>
+                        <li>Point-in-Time Recovery (PITR)</li>
+                        <li>Incremental &amp; Differential Backups</li>
+                        <li>Parallel Backup &amp; Restore</li>
+                        <li>Backup Rotation &amp; Archive Expiration</li>
+                        <li>Checksums</li>
+                        <li>Many more options!</li>
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Backup - File System (Advanced)</h2>
+                    <ul>
+                        <li>Install pgbackrest</li>
+                        <pre><code data-trim>
+                            sudo yum install pgbackrest.x86_64
+                        </code></pre>
+                        <li>Create a stanza</li>
+                        <ul>
+                            <li>Defines where PG cluster is located, how it will be backed up, archiving options, etc</li>
+                            <li>One stanza on db server. Many stanzas on a dedicated backup machine.</li>
+                            <li>Edit /etc/pgbackrest.conf (default location, requires root)</li>
+                            <pre><code data-trim>
+                                [global]
+                                repo-path=/var/lib/pgbackrest
+
+                                [main]
+                                db-path=/var/lib/pgsql/10/data
+                                retention-full=2
+                            </code></pre>
+                        </ul>
+                        <li>Ensure repository folders exists with proper permissions</li>
+                        <pre><code data-trim>
+                            sudo mkdir /var/lib/pgbackrest
+                            sudo chmod 750 /var/lib/pgbackrest/
+                            sudo chown postgres:postgres /var/lib/pgbackrest
+                        </code></pre>
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Backup - File System (Advanced)</h2>
+                    <ul>
+                        <li>Set primary &amp; replica postgresql.conf options for WAL archiving</li>
+                        <pre><code data-trim>
+                            archive_command = 'pgbackrest --stanza=main archive-push %p'
+                            archive_mode = on
+                            listen_addresses = '*'
+                            max_wal_senders = 10 
+                            wal_level = replica
+                        </code></pre>
+                        <li>Reload/restart to set above options</li>
+                        <pre><code data-trim>
+                            sudo systemctl reload postgresql-10
+                        </code></pre>
+                        <li>Create &amp; check the stanza</li>
+                        <pre><code data-trim>
+                            sudo -u postgres pgbackrest --stanza=main --log-level-console=info stanza-create
+
+                            sudo -u postgres pgbackrest --stanza=main --log-level-console=info check
+                        </code></pre>
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Backup - File System (Advanced)</h2>
+                    <ul>
+                        <li>Perform a backup</li>
+                        <pre><code data-trim>
+                            sudo -u postgres pgbackrest --stanza=main --log-level-console=info backup
+                        </code></pre>
+                        <li>By default attempts an incremental backup, but since no full exists, creates a full. Run again...</li>
+                        <pre><code data-trim>
+                            sudo -u postgres pgbackrest --stanza=main --log-level-console=info backup
+                        </code></pre>
+                        <li>Designate backup type with --type option (full, incr, diff)</li>
+                        <pre><code data-trim>
+                            sudo -u postgres pgbackrest --stanza=main --type=diff --log-level-console=info backup
+                        </code></pre>
+                        <li>Check backup status</li>
+                        <pre><code data-trim>
+                            sudo -u postgres pgbackrest info
+                        </code></pre>
+                    </ul>
+                </section>
+    
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h2>Setup Replication - Advanced/Hybrid</h2>
                     <div id="li30">
                         <ul style="font-size:25px;">
                             <li>Create a new data directory (as postgres system user)</li>
 <pre>
-mkdir /var/lib/pgsql/9.3/omnislave
-chmod 700 /var/lib/pgsql/9.3/omnislave
+mkdir /var/lib/pgsql/10/br_replica
+chmod 700 /var/lib/pgsql/9.3/br_replica
 </pre>
                             <li>Edit master postgresql.conf to set archive_command /w omnipitr-archive (ensure it's a single line)</li>
                             <li>Clone of git repo already in /opt/omnipitr - <a href="https://github.com/omniti-labs/omnipitr" target="_blank">https://github.com/omniti-labs/omnipitr</a></li>
@@ -413,7 +700,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                             <li>CentOS does not install HiRes perl module by default (used by omnipitr)</li>
                             <pre>sudo yum install perl-Time-HiRes.x86_64</pre>
                             <li>Reload master to activate new archive_command</li>
-                            <li>Check omnipitr & postgres logs. Check WAL folder for WAL files</li>
+                            <li>Check omnipitr &amp; postgres logs. Check WAL folder for WAL files</li>
                         </ul>
                     </div>
                     <aside class="notes">
@@ -425,7 +712,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h2>Setup Replication - Advanced/Hybrid</h2>
                     <ul style="font-size:25px;">
-                        <li>Use omnipitr-synch to create new slave</li>
+                        <li>Use omnipitr-synch to create new replica</li>
                         <ul>
                             <li>Does the same as pg_basebackup, but can send to multiple locations in parallel</li>
                             <li>Quicker rebuilding of old master after failover using rsync</li>
@@ -457,7 +744,7 @@ exit
                     <ul>
                         <li>Copy other recovery.conf file but add a recovery_command & archive_cleanup_command using omnipitr (as postgres system user)</li>
 <pre>
-cp /var/lib/pgsql/9.3/slave/recovery.conf /var/lib/pgsql/9.3/omnislave/
+cp /var/lib/pgsql/10/replica/recovery.conf /var/lib/pgsql/9.3/omnislave/
 </pre>
 <pre>
 restore_command = '/opt/omnipitr/bin/omnipitr-restore -D /var/lib/pgsql/9.3/omnislave -s gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/omnislave/pg_log/omnipitr-restore-^Y-^m-^d.log -f /var/lib/pgsql/9.3/omnislave/finish.recovery -v -sr %f %p'
@@ -479,8 +766,8 @@ archive_cleanup_command = '/opt/omnipitr/bin/omnipitr-cleanup -a gzip=/var/lib/p
                             <li>As postgres system user</li>
                             <pre style="font-size:18px">/usr/pgsql-9.3/bin/pg_ctl start -D /var/lib/pgsql/9.3/omnislave</pre>
                             <li>Will not autostart on boot</li>
-                            <li>Cannot connect to this slave (hot_standby = off in postgresql.conf)</li>
-                            <li>Should see two entries for streaming slaves when checking from master now</li>
+                            <li>Cannot connect to this replica (hot_standby = off in postgresql.conf)</li>
+                            <li>Should see two entries for streaming replicas when checking from master now</li>
                             <li>After a few minutes, should start seeing archived WAL files cleaned up automatically</li>
                         </ul>
                         <li>Check logs</li>
@@ -501,18 +788,57 @@ archive_cleanup_command = '/opt/omnipitr/bin/omnipitr-cleanup -a gzip=/var/lib/p
                     <ul style="font-size:25px;">
                         <li>Comment out “primary_conninfo” line from omnislave recovery.conf</li>
                         <li>Remove “-sr” flag from restore_command</li>
-                        <li>Restart slave (as postgres user)</li>
+                        <li>Restart replica (as postgres user)</li>
                         <pre>/usr/pgsql-9.3/bin/pg_ctl restart -m fast -D /var/lib/pgsql/9.3/omnislave/</pre>
-                        <li>archive_timeout of master determines how far behind slave could possibly be</li>
-                        <li>--recovery-delay (-w) option to omnipitr-restore can force slave to lag behind a specified period of time</li>
+                        <li>archive_timeout of master determines how far behind replica could possibly be</li>
+                        <li>--recovery-delay (-w) option to omnipitr-restore can force replica to lag behind a specified period of time</li>
                         <ul>
-                            <li>Recovery slave to quickly undo mistakes</li>
+                            <li>Recovery replica to quickly undo mistakes</li>
                         </ul>
                         <li>Only method of replication pre 9.0</li>
 
                         <li>UNDO ABOVE CHANGES</li>
-                        <li>Restart slave again and ensure it connected to primary</li>
+                        <li>Restart replica again and ensure it connected to primary</li>
                     </ul>
+                </section>
+
+                <section data-background="css/theme/omniti_bg_logo.png">
+                    <h2>Failover</h2>
+                    <ul id="li30" style="font-size:30px;">
+                        <li>Will be failing over to the first replica we made (/var/lib/pgsql/10/replica/)
+                        <li>Ensure failover replica has same archive_command set as the original master but with appropriate path settings (would typically be the same if on different servers).</li>
+                        <ul>
+                            <li>Make new state folder for omnipitr</li>
+                            <pre>mkdir /var/lib/pgsql/9.3/replica/pg_log/state</pre>
+                        </ul>
+<pre style="font-size:18px">
+archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/replica -dl gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/replica/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/replica/pg_log/state -db /var/lib/pgsql/9.3/backups/dst-backup "%p"'
+</pre>
+                        <li>Reload replica config to turn on new archive command</li>
+<pre>
+psql -p 5444
+select pg_reload_conf();
+</pre>
+                        <li>Check that it's in place</li>
+                        <pre>show archive_command;</pre>
+                        <li>Archive command is only called if postgresql is in master mode</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Failover</h2>
+                    <ul>
+                        <li>Stop the master database or deny access (avoid split-brain)</li>
+                        <pre>sudo service postgresql-9.3 stop</pre>
+                        <li>Check replica logs. Should see connection errors</li>
+                        <li>Touch failover file for first replica we made</li>
+                        <pre>touch /var/lib/pgsql/9.3/replica/finish.recovery</pre>
+                        <li>Edit recovery.conf in omnislave to point to new master</li>
+                        <pre>primary_conninfo = 'user=replication password=password host=127.0.0.1 port=5444'</pre>
+                        <li>Restart omnislave</li>
+                        <pre>/usr/pgsql-9.3/bin/pg_ctl restart -D /var/lib/pgsql/9.3/omnislave</pre>
+                        <li>Check omnislave log to see if it reconnected to new primary</li>
+                    </ul>
+
                 </section>
 
 
@@ -541,128 +867,15 @@ sudo setsebool -P postgresql_can_rsync on
                 </section>
 
 
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Backup - pg_dump/all</h2>
-                    <div id="li30">
-                        <ul style="font-size:25px;">
-                            <li>pg_dumpall</li>
-                            <ul>
-                                <li>Dumps all databases in cluster in plaintext format</li>
-                                <li>Can dump only role data</li>
-                                <li>Use psql to restore backup</li>
-                                <li>Restores entire cluster. No object filtering options.</li>
-                                <li>Dump only roles and/or tablespaces (cluster-wide objects)</li>
-                                <pre style="font-size:18px">pg_dumpall -g -f globals.sql -v</pre>
-                            </ul>
-                            <li>pg_dump</li>
-                            <ul>
-                                <li>Backs up individual databases in cluster</li>
-                                <li>Does not back up roles or tablespaces, but does back up object privileges of those roles.</li>
-                                <li>Use pg_restore to restore binary backups</li>
-                                <li>Provides binary backup format that can make restore easier</li>
-                                <li>Can restore individual schemas or tables instead of entire cluster</li>
-                            <pre style="font-size:18px">pg_dump -Fc training -f training.pgr -v</pre>
-                        </ul>
-                    </div>
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Backup - File System</h2>
-                    <div id="li30">
-                        <ul style="font-size:22px;">
-                            <li>Basic file system backup (basically what we did to create omnipitr slave system)</li>
-                            <ul>
-                                <li>pg_start_backup() -&gt; copy all files -&gt; pg_stop_backup()</li>
-                            </ul>
-                            <li>Omnipitr</li>
-                            <ul>
-                                <li>Set dst-backup (-db) option in archive_command (location does not exist)</li>
-<pre style="font-size:18px">
-archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data -dl gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/data/pg_log/state -db /var/lib/pgsql/9.3/backups/dst-backup "%p"'
-</pre>
-                                <ul>
-                                    <li>When backup is run, this dir is created to hold WAL files needed for consistent backup</li>
-                                    <li>Same use as -X option to pg_basebackup</li>
-                                </ul>
-                                <li>pg_reload_conf()</li>
-                                <li>Need to install Perl SHA library (as training user)</li>
-<pre style="font-size:18px">sudo yum install perl-Digest-SHA.x86_64</pre>
-                                <li>Run omnipitr-backup-master (as postgres system user)</li>
-<pre style="font-size:18px">
-/opt/omnipitr/bin/omnipitr-backup-master -D /var/lib/pgsql/9.3/data -x /var/lib/pgsql/9.3/backups/dst-backup -dl gzip=/var/lib/pgsql/9.3/backups -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-backup-master-^Y-^m-^d.log -v -dg SHA-512
-</pre>
-                            </ul>
-                        </ul>    
-                    </div>
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Restore - pg_restore</h2>
-                    <div id="li30">
-                        <ul style="font-size:25px;">
-                            <li>As training user, create new database in home folder</li>
-<pre style="font-size:18px">
-mkdir mydb
-/usr/pgsql-9.3/bin/initdb -D /home/training/mydb
-Edit port in postgresql.conf - port = 5444
-/usr/pgsql-9.3/bin/pg_ctl -D /home/training/mydb start
-</pre>
-                            <li>Automatically made role “training”</li>
-                            <li>psql used to restore pg_dumpall or plaintext version of pg_dump</li>
-                            <ul>
-                                <li>Restore roles before restoring database so permissions are set properly</li>
-                                <pre style="font-size:18px">psql -p 5444 -d postgres -f globals.sql -a</pre>
-                            </ul>
-                            <li>pg_restore can be used to restore binary dump of pg_dump</li>
-<pre style="font-size:18px">
-psql -p 5444 postgres
-postgres=# create database new_training;
-pg_restore -p 5444 -d new_training -v training.pgr
-</pre>
-                            <li>Smaller backups & more flexible restore</li>
-                            <li>Must recreate all indexes & constraints</li>
-                            <li>Stop this instance</li>
-                            <pre style="font-size:18px">/usr/pgsql-9.3/bin/pg_ctl stop -m fast -D mydb</pre>
-                        </ul>
-                    </div>
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Restore - File System</h2>
-                    <div id="li30">
-                        <ul style="font-size:25px;">
-                            <li>As postgres system user, create a new data directory</li>
-                            <pre style="font-size:18px">mkdir /var/lib/pgsql/9.3/omnirestore</pre>
-                            <li>Untar the backup to it</li>
-<pre style="font-size:18px">
-cd /var/lib/pgsql/9.3/omnirestore
-tar xvzpf ../backups/localhost.localdomain-data-YYYY-MM-DD.tar.gz
-tar xvzpf ../backups/localhost.localdomain-xlog-YYYY-MM-DD.tar.gz
-chmod 700 data
-cd data
-</pre>
-                            <li>Change the port in postgresql.conf</li>
-                            <pre style="font-size:18px">port = 5444</pre>
-                            <li>Start it up</li>
-                            <pre style="font-size:18px">/usr/pgsql-9.3/bin/pg_ctl start -D /var/lib/pgsql/9.3/omnirestore/data</pre>
-                            <li>Much faster disaster recovery</li>
-                            <li>Less flexible restore options (all or nothing)</li>
-                        </ul>
-                    </div>
-                </section>
-
 
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h2>Monitoring</h2>
                     <div id="li30">
                         <ul style="font-size:25px;">
-                            <li>Slave lag</li>
+                            <li>Replica lag</li>
                             <ul>
-                                <li>Monitor from slave (seconds behind since last WAL replay)</li>
-                                <pre style="font-size:18px">SELECT extract(epoch from now() - pg_last_xact_replay_timestamp()) AS slave_lag</pre>
+                                <li>Monitor from replica (seconds behind since last WAL replay)</li>
+                                <pre style="font-size:18px">SELECT extract(epoch from now() - pg_last_xact_replay_timestamp()) AS replica_lag</pre>
                                 <li>Monitor from master if streaming (bytes behind)</li>
 <pre style="font-size:18px">
 SELECT client_hostname
@@ -671,7 +884,7 @@ SELECT client_hostname
     pg_stat_replication.replay_location) AS byte_lag
 FROM pg_stat_replication;
 </pre>
-                                <li>Use omnipitr-monitor to monitor a non-streaming, non-hot-standby slave</li>
+                                <li>Use omnipitr-monitor to monitor a non-streaming, non-hot-standby replica</li>
                                 <ul>
                                     <li>Create state directory owned by postgres - /var/log/omnipitr</li>
 <pre style="font-size:18px">
@@ -892,51 +1105,12 @@ pg_ls_dir_sec_def ~ '^[0-9A-F]{24}$';
                             <li>Works only for 8.4.7+ (all previous versions must dump/restore)</li>
                             <li>OS w/ hard link support can greatly decrease upgrade time</li>
                             <ul>
-                                <li>Ex: 700GB upgrade in under 5 minutes</li>
+                                <li>Ex: 700GB upgrade in under 5 minutes (minus stats scan)</li>
                             </ul>
                         </ul>
                     </ul>
                 </section>
 
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Failover</h2>
-                    <ul id="li30" style="font-size:30px;">
-                        <li>Will be failing over to the first slave we made (/var/lib/pgsql/9.3/slave/)
-                        <li>Ensure failover slave has same archive_command set as the original master but with appropriate path settings (would typically be the same if on different servers).</li>
-                        <ul>
-                            <li>Make new state folder for omnipitr</li>
-                            <pre>mkdir /var/lib/pgsql/9.3/slave/pg_log/state</pre>
-                        </ul>
-<pre style="font-size:18px">
-archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/slave -dl gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/slave/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/slave/pg_log/state -db /var/lib/pgsql/9.3/backups/dst-backup "%p"'
-</pre>
-                        <li>Reload slave config to turn on new archive command</li>
-<pre>
-psql -p 5488
-select pg_reload_conf();
-</pre>
-                        <li>Check that it's in place</li>
-                        <pre>show archive_command;</pre>
-                        <li>Archive command is only called if postgresql is in master mode</li>
-                    </ul>
-                </section>
-                <section>
-                    <h2>Failover</h2>
-                    <ul>
-                        <li>Stop the master database or deny access (avoid split-brain)</li>
-                        <pre>sudo service postgresql-9.3 stop</pre>
-                        <li>Check slave logs. Should see connection errors</li>
-                        <li>Touch failover file for first slave we made</li>
-                        <pre>touch /var/lib/pgsql/9.3/slave/finish.recovery</pre>
-                        <li>Edit recovery.conf in omnislave to point to new master</li>
-                        <pre>primary_conninfo = 'user=replication password=password host=127.0.0.1 port=5488'</pre>
-                        <li>Restart omnislave</li>
-                        <pre>/usr/pgsql-9.3/bin/pg_ctl restart -D /var/lib/pgsql/9.3/omnislave</pre>
-                        <li>Check omnislave log to see if it reconnected to new primary</li>
-                    </ul>
-
-                </section>
 
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h1>Final Questions?</h1>
