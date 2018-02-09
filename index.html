@@ -332,7 +332,7 @@
                         <pre><code data-trim>
                             host    replication    replication    127.0.0.1/32    md5
                         </code></pre>
-                        <li>Use pg_basebackup to do a backup of master (as postgres system user)</li>
+                        <li>Use pg_basebackup to create copy of master (as postgres system user)</li>
                         <ul>
                             <li><a href="http://www.postgresql.org/docs/10/static/app-pgbasebackup.html" target="_blank">http://www.postgresql.org/docs/10/static/app-pgbasebackup.html</a></li>
                         <pre><code data-trim>
@@ -508,7 +508,7 @@
                         <li>-Xs (--wal-method=stream) is default for PG10+</li>
                         <ul>
                             <li>-Xf (fetch) only works if all WAL generated during backup run exist at the end of the backup</li>
-                            <li>Can require extremely high wal_keep_segements on a busy database</li>
+                            <li>-Xf can require extremely high wal_keep_segements on a busy database</li>
                             <li>-Xs does require one additional wal sender being available (max_wal_senders)</li>
                         </ul>
                     </ul>    
@@ -981,7 +981,7 @@ from pg_locks;
                             sudo systemctl stop postgresql-10
                             sudo systemctl status postgresql-10
                         </code></pre>
-                        <li>Check logs to see connection errors</li>
+                        <li>Check replica logs to see connection errors</li>
                         <pre><code data-trim>
                             /var/lib/pgsql/10/replica/log/...
                         </code></pre>
