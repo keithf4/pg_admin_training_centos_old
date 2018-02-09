@@ -315,7 +315,7 @@
                                 <li>VACUUM resets all row XIDs to that of the oldest transaction or FrozenXID if possible.</li>
                                 <li>Reserved, FrozenXID always older than all XIDs</li>
                                 <ul>
-                                    <li>VACUUM FREEZE tables rarely written to so that vacuum can skip pages and run more efficiently</li>
+                                    <li>VACUUM FREEZE tables rarely written to so that vacuum can skip pages and run more efficiently (9.6+ feature)</li>
                                 </ul>
                                 <li>autovacuum_freeze_max_age - when table XID value reaches this, a VACUUM is forced (even if autovac turned off).</li>
                             </ul>
@@ -337,7 +337,7 @@
                             <li><a href="http://www.postgresql.org/docs/10/static/app-pgbasebackup.html" target="_blank">http://www.postgresql.org/docs/10/static/app-pgbasebackup.html</a></li>
                         <pre><code data-trim>
                             sudo su - postgres
-                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/replica -R -Xs -P -v</pre>
+                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/replica -R -Xs -P -v
                         </code></pre>
                         <li>Edit replica postgresql.conf </li>
                         <pre><code data-trim>
@@ -604,6 +604,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Backup - File System (Advanced)</h2>
+                    <div id="li30">
                     <ul>
                         <li>Install pgbackrest</li>
                         <pre><code data-trim>
@@ -630,6 +631,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                             sudo chown postgres:postgres /var/lib/pgbackrest
                         </code></pre>
                     </ul>
+                    </div>
                 </section>
 
 				<section data-background="css/theme/crunchy_white_bg.png">
@@ -677,6 +679,74 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                         </code></pre>
                     </ul>
                 </section>
+
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Upgrading</h2>
+                    <ul>
+                        <li>Dump/Restore</li>
+                        <ul>
+                            <li>Works on all versions</li>
+                            <li>Use the pg_dump binary of the upgrade target</li>
+                            <li>8.4+ has parallel pg_restore</li>
+                            <li>9.3+ has parallel pg_dump</li>
+                            <li>Same caveats mentioned previously (smaller dump/longer restore)</li>
+                        </ul>
+                        <li>pg_upgrade</li>
+                        <ul>
+                            <li>In-place upgrade of data files</li>
+                            <li>Works only for 8.4.7+ (all previous versions must dump/restore)</li>
+                            <li>OS w/ hard link support can greatly decrease upgrade time</li>
+                            <ul>
+                                <li>Ex: 700GB upgrade in under 5 minutes, but...</li>
+                                <li>Don't forget to analyze entire cluster</li>
+                                <pre><code data-trim>
+                                    vacuumdb --all --analyze-in-stages 
+                                </code></pre>
+                    </ul>
+                            </ul>
+                        </ul>
+                    </ul>
+                </section>
+
+
+<!--
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Setup Replication (Advanced)</h2>
+                    <ul>
+                        <li>Replica that reads WAL from pgbackrest repository</li>
+                        <li>Requires bidirectional passwordless ssh between primary &amp; all replicas</li>
+                        <li style="color:red">As postgres system user:</li>
+                        <pre><code data-trim>
+                            ssh-keygen -t rsa  (accept all defaults, no password)
+                            cd ~/.ssh
+                            cp id_rsa.pub authorized_keys
+                            ssh localhost (yes)
+                            exit
+                        </code></pre>
+                        <li>Create new replica folder (still as postgres user)</li>
+                        <pre><code data-trim>
+                            mkdir /var/lib/pgsql/10/br_replica
+                            chmod 700 /var/lib/pgsql/10/br_replica
+                        </code></pre>
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Setup Replication (Advanced)</h2>
+                    <ul>
+                        <li>Create new replica with pgbasebackup</li>
+                        <pre><code data-trim>
+                            sudo su - postgres
+                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/br_replica -R -Xs -P -v
+
+                            Set port to 5999
+                            sudo cp /usr/lib/systemd/system/postgresql-10.service /etc/systemd/system/postgresql-10-brreplica.service
+                        </code></pre>
+
+                    </ul>
+                </section>
+
     
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h2>Setup Replication - Advanced/Hybrid</h2>
@@ -791,7 +861,7 @@ archive_cleanup_command = '/opt/omnipitr/bin/omnipitr-cleanup -a gzip=/var/lib/p
                         <li>Restart replica (as postgres user)</li>
                         <pre>/usr/pgsql-9.3/bin/pg_ctl restart -m fast -D /var/lib/pgsql/9.3/omnislave/</pre>
                         <li>archive_timeout of master determines how far behind replica could possibly be</li>
-                        <li>--recovery-delay (-w) option to omnipitr-restore can force replica to lag behind a specified period of time</li>
+                        <li>-recovery-delay (-w) option to omnipitr-restore can force replica to lag behind a specified period of time</li>
                         <ul>
                             <li>Recovery replica to quickly undo mistakes</li>
                         </ul>
@@ -801,7 +871,6 @@ archive_cleanup_command = '/opt/omnipitr/bin/omnipitr-cleanup -a gzip=/var/lib/p
                         <li>Restart replica again and ensure it connected to primary</li>
                     </ul>
                 </section>
-
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h2>Failover</h2>
                     <ul id="li30" style="font-size:30px;">
@@ -866,251 +935,276 @@ sudo setsebool -P postgresql_can_rsync on
                         </ul>
                 </section>
 
+    -->
 
 
-                <section data-background="css/theme/omniti_bg_logo.png">
+
+				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Monitoring</h2>
                     <div id="li30">
                         <ul style="font-size:25px;">
-                            <li>Replica lag</li>
+                            <li>Replication status</li>
+                            <li>Active/Idle connections. Idle in transaction session times.</li>
+                            <li>Table statistics</li>
                             <ul>
-                                <li>Monitor from replica (seconds behind since last WAL replay)</li>
-                                <pre style="font-size:18px">SELECT extract(epoch from now() - pg_last_xact_replay_timestamp()) AS replica_lag</pre>
-                                <li>Monitor from master if streaming (bytes behind)</li>
-<pre style="font-size:18px">
-SELECT client_hostname
-, client_addr
-, pg_xlog_location_diff(pg_stat_replication.sent_location, 
-    pg_stat_replication.replay_location) AS byte_lag
-FROM pg_stat_replication;
-</pre>
-                                <li>Use omnipitr-monitor to monitor a non-streaming, non-hot-standby replica</li>
-                                <ul>
-                                    <li>Create state directory owned by postgres - /var/log/omnipitr</li>
-<pre style="font-size:18px">
-/opt/omnipitr/bin/omnipitr-monitor -c last-restore-age -l /var/lib/pgsql/9.3/omnislave/pg_log/omnipitr-restore-^Y-^m-^d.log -s /var/log/omnipitr/
-</pre>
-                                </ul>
+                                <li>Sequential scans vs index scans</li>
+                                <li>Insert/Update/Delete rate</li>
                             </ul>
-                            <li>Backup monitor if using omnipitr-backup</li>
-<pre style="font-size:18px">
-/opt/omnipitr/bin/omnipitr-monitor -c last-backup-age -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-backup-master-^Y-^m-^d.log -s /var/log/omnipitr/
-</pre>
+                            <li>Max oldest autovac freeze age</li> 
+                            <li>Transactions</li>
+                            <ul>
+                                <li>Commits vs Rollbacks</li>
+                            </ul>
+                            <li>Database size</li> 
+                            <ul>
+                                <li>Total Table Size vs Total Index Size</li>
+                            </ul>
+                            <!--<li>Locks</li>-->
+                            <li>WAL file count (expected vs current)</li>
+                            <li>Log/query analysis - <a href="http://dalibo.github.io/pgbadger/" target="_blank">pgbadger</a></li>
+                            <li>Critical functions - <a href="https://github.com/omniti-labs/pg_jobmon" target="_blank">pg_jobmon</a></li>
+                            <li>Prometheus - <a href="https://prometheus.io" target="_blank">https://prometheus.io</a></li>
+                            <ul>
+                                <li>Trending + Monitoring</li>
+                                <li><a href="https://github.com/CrunchyData/pgmonitor" target="_blank">pgmonitor</a></li>
+                            </ul>
+                        </ul>
+                    </div>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Replication Status</h2>
+                    <div id="li30">
+                        <ul style="font-size:25px;">
+                            <li>Monitor from replica (seconds behind since last WAL replay)</li>
+                            <pre><code data-trim>
+                                SELECT extract(epoch from now() - pg_last_xact_replay_timestamp()) AS replica_lag
+                            </code></pre>
+                            <li>Monitor from master if streaming (bytes behind)</li>
+                            <pre><code data-trim>
+                                SELECT client_hostname
+                                    , client_addr
+                                    , pg_wal_location_diff(pg_stat_replication.sent_location, 
+                                        pg_stat_replication.replay_location) AS byte_lag
+                                FROM pg_stat_replication;
+                            </code></pre>
                         </ul>
                     </div>
                 </section>
 
 
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <section>
-                        <h2>Monitoring</h2>
-                        <div id="li30">
-                            <ul style="font-size:25px;">
-                                <li>Active/Idle connections. Idle in transaction session times.</li>
-                                <li>Table statistics</li>
-                                <ul>
-                                    <li>Sequential scans vs index scans</li>
-                                    <li>Insert/Update/Delete rate</li>
-                                </ul>
-                                <li>Max oldest autovac freeze age</li> 
-                                <li>Transactions</li>
-                                <ul>
-                                    <li>Commits vs Rollbacks</li>
-                                </ul>
-                                <li>Database size</li> 
-                                <ul>
-                                    <li>Total Table Size vs Total Index Size</li>
-                                </ul>
-                                <li>Locks</li>
-                                <li>WAL file count (expected vs current)</li>
-                                <li><a href="http://www.nagios.org" target="_blank">Nagios</a></li>
-                                <ul>
-                                    <li><a href="http://bucardo.org/wiki/Check_postgres" target="_blank">check_postgres.pl</a></li>
-                                    <li>Disk space monitoring since you can’t predetermine the disk usage like in oracle</li>
-                                </ul>
-                                <li>Log/query analysis - <a href="http://dalibo.github.io/pgbadger/" target="_blank">pgbadger</a></li>
-                                <li>Critical functions - <a href="https://github.com/omniti-labs/pg_jobmon" target="_blank">pg_jobmon</a></li>
-                            </ul>
-                        </div>
-                    </section>
-                    <section>
-                        <h2>Connections</h2>
-                        <ul id="li30" style="font-size:28px;">
-                            <li>pg_stat_activity only shows all column data to superuser. Otherwise it censors data of other sessions. Create function as superuser using SECURITY DEFINER and grant execute to monitoring role.</li>
-                            <pre>
-create or replace function pg_stat_activity() 
-returns setof pg_catalog.pg_stat_activity as 
-$$begin return query(select * from pg_catalog.pg_stat_activity); end$$ 
-language plpgsql security definer;
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Connections</h2>
+                    <ul id="li30" style="font-size:24px;">
+                        <li>pg_stat_activity only shows all column data to superuser. Otherwise it censors data of other sessions.</li>
+                        <li>PG10 has new <b></i>pg_monitor</i></b> default role that allows viewing/executing various monitoring views and functions</li>
+                        <pre><code data-trim>
+                            CREATE ROLE monitoring WITH LOGIN;
+                            GRANT pg_monitor TO monitoring;
+                        </code></pre>
+                        <li>Add to top of pg_hba.conf and reload</li>
+                        <pre><code data-trim>
+                            local    all    monitoring       trust 
 
-revoke all on function pg_stat_activity() from public;
-                            </pre>
-                            <pre>
-select max_connections
-, total_used
-, coalesce(round(100*(total_used/max_connections)),0) as pct_used
-, idle
-, idle_in_txn
-, ((total_used - idle) - idle_in_txn) as active
-, (select coalesce(extract(epoch from (max(now() - query_start))),0) from pg_stat_activity() where state = 'idle in transaction') as max_idle_in_txn
-, (select coalesce(extract(epoch from (max(now() - query_start))),0) from pg_stat_activity() where state &lt;&gt; 'idle') as max_txn_time
-    from (select count(*) as total_used
-            , coalesce(sum(case when state = 'idle' then 1 else 0 end),0) as idle
-            , coalesce(sum(case when state = 'idle in transaction' then 1 else 0 end),0) as idle_in_txn 
-            from pg_stat_activity()) 
-    x join (select setting::float AS max_connections FROM pg_settings WHERE name = 'max_connections') xx ON (true);
-                            </pre>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>Table Statistics</h2>
-                        <ul>
-                            <li>Not cluster-wide. Run this on each database in the cluster.</li>
-                            <li>Graph updates, deletes, scans & fetches as rate of change</li>
-                            <pre>
-select sum(n_tup_ins) as inserts
-, sum(n_tup_upd) as updates
-, sum(n_tup_del) as deletes
-, sum(idx_scan)  as index_scans
-, sum(seq_scan) as seq_scans
-, sum(idx_tup_fetch) as index_tup_fetch
-, sum(seq_tup_read) as seq_tup_read 
-, coalesce(extract(epoch from now() - max(last_autovacuum))) as max_last_autovacuum
-, coalesce(extract(epoch from now() - max(last_vacuum))) as max_last_vacuum
-, coalesce(extract(epoch from now() - max(last_autoanalyze))) as max_last_autoanalyze
-, coalesce(extract(epoch from now() - max(last_analyze))) as max_last_analyze
-from pg_stat_all_tables;
-                            </pre>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>Autovac Freeze</h2>
-                        <pre>
-SELECT datname
-, txns as "age/txn"
-, wrap
-, ROUND(100*(txns/wrap::float)) as wrap_perc 
-, freez
-, ROUND(100*(txns/freez::float)) AS perc
-FROM (
-SELECT foo.wrap::int
-    , foo.freez::int
-    , age(datfrozenxid) AS txns
-    , datname 
-    FROM pg_database d 
-    JOIN (SELECT 2000000000 AS wrap
-            , setting AS freez 
-          FROM pg_settings 
-          WHERE name = 'autovacuum_freeze_max_age') AS foo 
-        ON (true) 
-    WHERE d.datallowconn) AS foo2 ORDER BY 6 DESC, 1 ASC;
-                        </pre>
-                    </section>
-                    <section>
-                        <h2>Transations</h2>
-                        <ul>
-                            <li>Graph all columns as rate of change</li>
-                        </ul>
-                        <pre>
-select txid_snapshot_xmax(txid_current_snapshot()) as xmax
-, commits
-, rollback 
-from (
-select sum(xact_commit) as commits
-    , sum(xact_rollback) as rollback 
-from pg_stat_database) as x;
-                        </pre>
-                    </section>
-                    <section>
-                        <h2>Database size</h2>
-                        <ul>
-                            <li>Returns size of each database in cluster</li>
-                            <li>Graph as both actual value & rate of change</li>
-                        </ul>
-                            <pre>
-select datname as name
-, pg_database_size(datname) as size 
-from pg_catalog.pg_database;
-                            </pre>
-                    </section>
-                    <section>
-                        <h2>Total Table & Index Sizes</h2>
-                        <pre>
-SELECT sum(pg_relation_size(c.oid)) as size_table 
-FROM pg_class c, pg_namespace n 
-WHERE relkind not in ( 'i' , 'c','v') AND n.oid = c.relnamespace
-                        </pre>
-                        <pre>
-SELECT sum(pg_relation_size(c.oid)) as size_index 
-FROM pg_class c, pg_namespace n 
-WHERE (relkind = 'i') AND n.oid = c.relnamespace;
-                        </pre>
-                    </section>
-                    <section>
-                        <h2>Locks</h2>
-                        <pre>
+                            sudo systemctl reload postgresql-10
+                        </code></pre>
+                        <pre><code data-trim>
+                            select max_connections
+                            , total_used
+                            , coalesce(round(100*(total_used/max_connections)),0) as pct_used
+                            , idle
+                            , idle_in_txn
+                            , ((total_used - idle) - idle_in_txn) as active
+                            , (select coalesce(extract(epoch from (max(now() - query_start))),0) from 
+                                    pg_stat_activity where state = 'idle in transaction') as max_idle_in_txn
+                            , (select coalesce(extract(epoch from (max(now() - query_start))),0) from 
+                                    pg_stat_activity where state &lt;&gt; 'idle') as max_txn_time
+                            from (select count(*) as total_used
+                                    , coalesce(sum(case when state = 'idle' then 1 else 0 end),0) as idle
+                                    , coalesce(sum(case when state = 'idle in transaction' then 1 else 0 end),0) as idle_in_txn 
+                                    from pg_stat_activity) 
+                            x join (select setting::float AS max_connections FROM 
+                                        pg_settings WHERE name = 'max_connections') xx ON (true);
+                        </code></pre>
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Autovac Freeze</h2>
+                    <ul id="li30" style="font-size:24px;">
+                        <li>Query that provides quick summary of transaction ID wraparound status</li>
+                        <pre><code data-trim>
+                            WITH max_age AS ( 
+                                SELECT 2000000000 as max_old_xid
+                                    , setting AS autovacuum_freeze_max_age 
+                                FROM pg_catalog.pg_settings 
+                                WHERE name = 'autovacuum_freeze_max_age')
+                            , per_database_stats AS ( 
+                                SELECT datname 
+                                    , m.max_old_xid::int 
+                                    , m.autovacuum_freeze_max_age::int 
+                                    , age(d.datfrozenxid) AS oldest_current_xid 
+                                FROM pg_catalog.pg_database d 
+                                JOIN max_age m ON (true) 
+                                WHERE d.datallowconn) 
+                            SELECT max(oldest_current_xid) AS oldest_current_xid 
+                                , max(ROUND(100*(oldest_current_xid/max_old_xid::float))) AS percent_towards_wraparound 
+                                , max(ROUND(100*(oldest_current_xid/autovacuum_freeze_max_age::float))) AS percent_towards_emergency_autovac 
+                            FROM per_database_stats;
+                        </code></pre>
+                        <pre><code data-trim>
+                            -[ RECORD 1 ]---------------------+----------
+                            oldest_current_xid                | 496452209
+                            percent_towards_wraparound        | 25
+                            percent_towards_emergency_autovac | 99
+
+                            postgres=# show autovacuum_freeze_max_age ;
+                            -[ RECORD 1 ]-------------+----------
+                            autovacuum_freeze_max_age | 500000000
+                        </code></pre>
+
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Table Statistics</h2>
+                    <ul>
+                        <li>Not cluster-wide. Run this on each database in the cluster.</li>
+                        <li>Graph all columns as rate of change</li>
+                        <pre><code data-trim>
+                            SELECT current_database() as dbname, schemaname, relname
+                                , seq_scan, seq_tup_read
+                                , idx_scan, idx_tup_fetch
+                                , n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd
+                                , n_live_tup, n_dead_tup
+                                , vacuum_count, autovacuum_count
+                                , analyze_count, autoanalyze_count 
+                                FROM pg_catalog.pg_stat_user_tables;
+                        </code></pre>
+                    </ul>
+                </section>
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Table Sizes</h2>
+                    <ul>
+                        <li>Not cluster-wide. Run this on each database in the cluster.</li>
+                        <li>Size includes all indexes in the table</li>
+                        <pre><code data-trim>
+                            SELECT current_database() as dbname
+                                , n.nspname as schemaname
+                                , c.relname
+                                , pg_total_relation_size(c.oid) as size_bytes 
+                            FROM pg_catalog.pg_class c 
+                            JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid 
+                            WHERE NOT pg_is_other_temp_schema(n.oid) 
+                            AND relkind IN ('r', 'm', 'f');
+                        </code></pre>
+
+                </section>
+
+   				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Database/Cluster-wide Statistics</h2>
+                    <ul>
+                        <li>Graph all columns as rate of change</li>
+                    </ul>
+                    <pre><code data-trim>
+                        SELECT s.datname as dbname
+                            , xact_commit, xact_rollback
+                            , blks_read, blks_hit
+                            , tup_returned, tup_fetched
+                            , tup_inserted, tup_updated, tup_deleted
+                            , conflicts
+                            , temp_files, temp_bytes
+                            , deadlocks 
+                        FROM pg_catalog.pg_stat_database s 
+                        JOIN pg_catalog.pg_database d on d.datname = s.datname 
+                        WHERE d.datistemplate = false;
+                    </code></pre>
+
+                </section>
+
+             <section>
+                    <h2>Database Sizes</h2>
+                    <ul>
+                        <li>Returns size of each database in cluster</li>
+                        <li>Graph as both actual value &amp; rate of change</li>
+                        <li>Sum bytes for total cluster size</li>
+                    </ul>
+                    <pre><code data-trim>
+                        SELECT datname as dbname
+                            , pg_database_size(datname) as bytes 
+                        FROM pg_catalog.pg_database 
+                        WHERE datistemplate = false;
+                    </code></pre>
+                </section>
+
+                <section>
+                    <h2>Table vs Index Size</h2>
+                    <ul>
+                        <li>Useful stat just to see the impact that indexes are having on your total size</li>
+                        <li>Plot both points together on same graph</li>
+                    </ul>
+                    <pre><code data-trim>
+                        SELECT sum(pg_relation_size(c.oid)) as size_table 
+                        FROM pg_class c
+                        JOIN pg_namespace n ON c.relnamespace = n.oid 
+                        WHERE relkind in ( 'm', 'r', 'f') 
+                        AND NOT pg_is_other_temp_schema(n.oid); 
+                    </code></pre>
+                    <pre><code data-trim>
+                        SELECT sum(pg_relation_size(c.oid)) as size_index 
+                        FROM pg_class c
+                        JOIN pg_namespace n ON c.relnamespace = n.oid 
+                        WHERE (relkind = 'i') 
+                        AND NOT pg_is_other_temp_schema(n.oid); 
+                    </code></pre>
+                </section>
+
+                <!--
+                <section>
+                    <h2>Locks</h2>
+                    <pre>
 select count(*) as total
 , count(nullif(granted,true)) as waiting
 , count(nullif(mode ilike '%exclusive%',false)) as exclusive 
 from pg_locks;
-                        </pre>
-                    </section>
-                    <section>
-                        <h2>WAL Metrics</h2>
-                        <ul id="li30" style="font-size:30px;">
-                            <li>pg_ls_dir() requires superuser privileges. Do same trick as with pg_stat_activity()</li>
-                            <li>Can only see files in data directory</li>
-                            <li>Warn if it goes above 100%. Probably more serious issue >= 200%</li>
-                        <pre>
-create or replace function pg_ls_dir_sec_def(text) 
-returns setof text as 
-$$begin return query(select pg_catalog.pg_ls_dir('pg_xlog')); end$$ 
-language plpgsql security definer;
-
-revoke all on function pg_ls_dir_sec_def(text) from public;
-                        </pre>
-                        <pre>
-SELECT count(*) as total
-, (2 + current_setting('checkpoint_completion_target')::float) * 
-    current_setting('checkpoint_segments')::int + 1 + 
-    current_setting('wal_keep_segments')::int as expected
-, ((count(*) / ((2 + current_setting('checkpoint_completion_target')::float) * 
-    current_setting('checkpoint_segments')::int + 1 + 
-    current_setting('wal_keep_segments')::int)) * 100)::int as pct
-FROM
-pg_ls_dir_sec_def('pg_xlog')
-WHERE
-pg_ls_dir_sec_def ~ '^[0-9A-F]{24}$';
-                        </pre>
-                        </ul>
-                    </section>
+                    </pre>
+                </section>
+                -->
+                <section>
+                    <h2>WAL Metrics</h2>
+                    <ul id="li30" style="font-size:30px;">
+                        <li>pg_ls_waldir() normally requires superuser privileges, but can also be granted with pg_monitor.</li>
+                        <li>Lists files in pg_wal directory</li>
+                        <li>Warn if it goes above 150% for longer than 10 minutes.</li>
+                        <li>Worth investigating if >= 300%. Much higher than usual write activity.</li>
+                        <li>May need to increase max_wal_size</li>
+                        <li>Watch for very old WAL files lingering</li>
+                        <pre><code data-trim>
+                            SELECT count(*) as total_count
+                                , 100*(sum(size) / ((SELECT setting FROM pg_settings WHERE name = 'max_wal_size')::int*1024*1024)) AS perc_max
+                                , min(modification)
+                            FROM pg_ls_waldir();
+                        </code></pre>
+                    </ul>
 
                 </section>
                 <!-- End monitoring query examples --> 
 
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Upgrading</h2>
-                    <ul>
-                        <li>Dump/Restore</li>
-                        <ul>
-                            <li>Works on all versions</li>
-                            <li>Use the pg_dump binary of the upgrade target</li>
-                            <li>8.4+ has parallel pg_restore</li>
-                            <li>9.3+ has parallel pg_dump</li>
-                            <li>Same caveats mentioned previously (smaller dump/longer restore)</li>
-                        </ul>
-                        <li>pg_upgrade</li>
-                        <ul>
-                            <li>In-place upgrade of data files</li>
-                            <li>Works only for 8.4.7+ (all previous versions must dump/restore)</li>
-                            <li>OS w/ hard link support can greatly decrease upgrade time</li>
-                            <ul>
-                                <li>Ex: 700GB upgrade in under 5 minutes (minus stats scan)</li>
-                            </ul>
-                        </ul>
-                    </ul>
-                </section>
 
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Failover</h2>
+                    <ul>
+                        <li>Stop the master</li>
+
+                        <li>Check logs to see connection errors</li>
+                        <li>Promote replica</li>
+
+                        <li>Check logs</li>
+                        <li>Write to database</li>
+
+
+                </section>
 
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h1>Final Questions?</h1>
