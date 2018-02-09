@@ -61,10 +61,10 @@
                     <p>
                         <ul>
                             <li>Industry leader in providing enterprise PostgreSQL support and open source solutions</li>
-                            <li>Trusted PostgreSQL</li>
+                            <li>Crunchy Certified PostgreSQL</li>
                             <ul>
                                 <li>100% Open Source PostgreSQL</li> 
-                                <li>Common Criteria Certified</li>
+                                <li>Common Criteria EAL 2+ Certified</li>
                             </ul>
                             <li>We're hiring!</li>
                             <ul>
@@ -326,7 +326,7 @@
                 <!-- VM Snapshot -->
 
 				<section data-background="css/theme/crunchy_white_bg.png">
-                    <h2>Setup Replication - Basic</h2>
+                    <h2>Replication - Basic</h2>
                     <ul style="font-size:30px;">
                         <li>Ensure line exists in master pg_hba.conf and reload master</li>
                         <pre><code data-trim>
@@ -360,7 +360,7 @@
                 <!-- VM Snapshot -->
 
 				<section data-background="css/theme/crunchy_white_bg.png">
-                    <h2>Setup Replication - Basic</h2>
+                    <h2>Replication - Basic</h2>
                     <ul>
                         <li>Production method for CentOS</li>
                         <li>Create new systemd service for replica</li>
@@ -385,7 +385,7 @@
                 <!-- VM Snapshot -->
 
 				<section data-background="css/theme/crunchy_white_bg.png">
-                    <h2>Setup Replication - Basic</h2>
+                    <h2>Replication - Basic</h2>
                     <ul>
                         <li>Check replica log to ensure it connected</li>
                         <pre><code data-trim>
@@ -709,235 +709,15 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                     </ul>
                 </section>
 
-
-<!--
+<!-- 
 				<section data-background="css/theme/crunchy_white_bg.png">
-                    <h2>Setup Replication (Advanced)</h2>
+                    <h2>Replication - Advanced</h2>
                     <ul>
-                        <li>Replica that reads WAL from pgbackrest repository</li>
-                        <li>Requires bidirectional passwordless ssh between primary &amp; all replicas</li>
-                        <li style="color:red">As postgres system user:</li>
-                        <pre><code data-trim>
-                            ssh-keygen -t rsa  (accept all defaults, no password)
-                            cd ~/.ssh
-                            cp id_rsa.pub authorized_keys
-                            ssh localhost (yes)
-                            exit
-                        </code></pre>
-                        <li>Create new replica folder (still as postgres user)</li>
-                        <pre><code data-trim>
-                            mkdir /var/lib/pgsql/10/br_replica
-                            chmod 700 /var/lib/pgsql/10/br_replica
-                        </code></pre>
-                    </ul>
-                </section>
-
-				<section data-background="css/theme/crunchy_white_bg.png">
-                    <h2>Setup Replication (Advanced)</h2>
-                    <ul>
-                        <li>Create new replica with pgbasebackup</li>
-                        <pre><code data-trim>
-                            sudo su - postgres
-                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/br_replica -R -Xs -P -v
-
-                            Set port to 5999
-                            sudo cp /usr/lib/systemd/system/postgresql-10.service /etc/systemd/system/postgresql-10-brreplica.service
-                        </code></pre>
+                        <li>Using pgbackrest</li>
 
                     </ul>
                 </section>
-
-    
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Setup Replication - Advanced/Hybrid</h2>
-                    <div id="li30">
-                        <ul style="font-size:25px;">
-                            <li>Create a new data directory (as postgres system user)</li>
-<pre>
-mkdir /var/lib/pgsql/10/br_replica
-chmod 700 /var/lib/pgsql/9.3/br_replica
-</pre>
-                            <li>Edit master postgresql.conf to set archive_command /w omnipitr-archive (ensure it's a single line)</li>
-                            <li>Clone of git repo already in /opt/omnipitr - <a href="https://github.com/omniti-labs/omnipitr" target="_blank">https://github.com/omniti-labs/omnipitr</a></li>
-<pre>
-archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data -dl gzip=/var/lib/pgsql/9.3/backups/walarchive 
--l /var/lib/pgsql/9.3/data/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/data/pg_log/state "%p"'
-</pre>
-                            <li>Create a destination folder for the WAL archives</li>
-                            <pre>mkdir /var/lib/pgsql/9.3/backups/walarchive</pre>
-                            <li>Create state folder for omnipitr (used when there are multiple destinations)</li>
-                            <pre>mkdir /var/lib/pgsql/9.3/data/pg_log/state</pre>
-                            <li>CentOS does not install HiRes perl module by default (used by omnipitr)</li>
-                            <pre>sudo yum install perl-Time-HiRes.x86_64</pre>
-                            <li>Reload master to activate new archive_command</li>
-                            <li>Check omnipitr &amp; postgres logs. Check WAL folder for WAL files</li>
-                        </ul>
-                    </div>
-                    <aside class="notes">
-                        Mention pigz as alternative to normal gzip command to improve performance
-                    </aside>
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Setup Replication - Advanced/Hybrid</h2>
-                    <ul style="font-size:25px;">
-                        <li>Use omnipitr-synch to create new replica</li>
-                        <ul>
-                            <li>Does the same as pg_basebackup, but can send to multiple locations in parallel</li>
-                            <li>Quicker rebuilding of old master after failover using rsync</li>
-                            <li>On-the-fly compression/decompression to preserve bandwidth if needed</li>
-                            <li>Uses ssh (no local copy option). sshd server running on VM.</li> 
-                            <li>Create keys for postgres system user</li>
-<pre>
-ssh-keygen -t rsa  (accept all defaults, no password)
-cd ~/.ssh
-cp id_rsa.pub authorized_keys
-ssh localhost (yes)
-exit
-</pre>
-<pre>
-/opt/omnipitr/bin/omnipitr-synch -o localhost:/var/lib/pgsql/9.3/omnislave -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-synch-^Y-^m-^d.log -v
-</pre>
-                            <li>Confirm with all caps “YES”</li>
-                        </ul>
-                        <li>Edit postgresql.conf</li>
-                        <ul>
-                            <li>port=5466 (matters because we’re NOT using init.d)</li>
-                        </ul>
-                    </ul>
-                </section>
-
-                
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Setup Replication - Advanced/Hybrid</h2>
-                    <ul>
-                        <li>Copy other recovery.conf file but add a recovery_command & archive_cleanup_command using omnipitr (as postgres system user)</li>
-<pre>
-cp /var/lib/pgsql/10/replica/recovery.conf /var/lib/pgsql/9.3/omnislave/
-</pre>
-<pre>
-restore_command = '/opt/omnipitr/bin/omnipitr-restore -D /var/lib/pgsql/9.3/omnislave -s gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/omnislave/pg_log/omnipitr-restore-^Y-^m-^d.log -f /var/lib/pgsql/9.3/omnislave/finish.recovery -v -sr %f %p'
-</pre>
-<pre>
-archive_cleanup_command = '/opt/omnipitr/bin/omnipitr-cleanup -a gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/omnislave/pg_log/omnipitr-cleanup-^Y-^m-^d.log -v %r'
-</pre>
-                    <li>Also update trigger file to point to a different location (just in case)</li>
-                    <pre>trigger_file = '/var/lib/pgsql/9.3/omnislave/finish.recovery'</pre>
-                    </ul>
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Setup Replication - Advanced/Hybrid</h2>
-                    <ul style="font-size:25px;">
-                        <li>Start new cluster using manual method instead of new initi.d script</li>
-                        <ul>
-                            <li>As postgres system user</li>
-                            <pre style="font-size:18px">/usr/pgsql-9.3/bin/pg_ctl start -D /var/lib/pgsql/9.3/omnislave</pre>
-                            <li>Will not autostart on boot</li>
-                            <li>Cannot connect to this replica (hot_standby = off in postgresql.conf)</li>
-                            <li>Should see two entries for streaming replicas when checking from master now</li>
-                            <li>After a few minutes, should start seeing archived WAL files cleaned up automatically</li>
-                        </ul>
-                        <li>Check logs</li>
-                        <ul>
-                            <li>Replays WAL archives first using restore_command</li>
-                            <li>Connects to primary for streaming replication</li>
-                            <li>Sees it’s streaming replication, so omnipitr-restore kills itself</li>
-                        </ul>
-                    </ul>
-                    <aside class="notes">
-                        Pause for questions after Check Logs main point to allow archive_cleanup_command to work
-                    </aside>
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Non-streaming Replication</h2>
-                    <ul style="font-size:25px;">
-                        <li>Comment out “primary_conninfo” line from omnislave recovery.conf</li>
-                        <li>Remove “-sr” flag from restore_command</li>
-                        <li>Restart replica (as postgres user)</li>
-                        <pre>/usr/pgsql-9.3/bin/pg_ctl restart -m fast -D /var/lib/pgsql/9.3/omnislave/</pre>
-                        <li>archive_timeout of master determines how far behind replica could possibly be</li>
-                        <li>-recovery-delay (-w) option to omnipitr-restore can force replica to lag behind a specified period of time</li>
-                        <ul>
-                            <li>Recovery replica to quickly undo mistakes</li>
-                        </ul>
-                        <li>Only method of replication pre 9.0</li>
-
-                        <li>UNDO ABOVE CHANGES</li>
-                        <li>Restart replica again and ensure it connected to primary</li>
-                    </ul>
-                </section>
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Failover</h2>
-                    <ul id="li30" style="font-size:30px;">
-                        <li>Will be failing over to the first replica we made (/var/lib/pgsql/10/replica/)
-                        <li>Ensure failover replica has same archive_command set as the original master but with appropriate path settings (would typically be the same if on different servers).</li>
-                        <ul>
-                            <li>Make new state folder for omnipitr</li>
-                            <pre>mkdir /var/lib/pgsql/9.3/replica/pg_log/state</pre>
-                        </ul>
-<pre style="font-size:18px">
-archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/replica -dl gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/replica/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/replica/pg_log/state -db /var/lib/pgsql/9.3/backups/dst-backup "%p"'
-</pre>
-                        <li>Reload replica config to turn on new archive command</li>
-<pre>
-psql -p 5444
-select pg_reload_conf();
-</pre>
-                        <li>Check that it's in place</li>
-                        <pre>show archive_command;</pre>
-                        <li>Archive command is only called if postgresql is in master mode</li>
-                    </ul>
-                </section>
-                <section>
-                    <h2>Failover</h2>
-                    <ul>
-                        <li>Stop the master database or deny access (avoid split-brain)</li>
-                        <pre>sudo service postgresql-9.3 stop</pre>
-                        <li>Check replica logs. Should see connection errors</li>
-                        <li>Touch failover file for first replica we made</li>
-                        <pre>touch /var/lib/pgsql/9.3/replica/finish.recovery</pre>
-                        <li>Edit recovery.conf in omnislave to point to new master</li>
-                        <pre>primary_conninfo = 'user=replication password=password host=127.0.0.1 port=5444'</pre>
-                        <li>Restart omnislave</li>
-                        <pre>/usr/pgsql-9.3/bin/pg_ctl restart -D /var/lib/pgsql/9.3/omnislave</pre>
-                        <li>Check omnislave log to see if it reconnected to new primary</li>
-                    </ul>
-
-                </section>
-
-
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>A Note on SELinux</h2>
-                    <ul>
-                        <li>Enabled by default in CentOS 6.5</li>
-                        <li>omnipitr uses rsync</li>
-                        <li>SELinux blocks the archive_command using rsync</li>
-                        <ul>
-                            <li>Obscure error 3072 in log</li>
-                        </ul>
-                        <li>Configure SELinux to allow postgres to rsync</li>
-<pre>
-sudo yum install policycoreutils-python-2.0.83-19.39.el6.x86_64
-sudo semanage fcontext -a -t bin_t "/usr/bin/rsync"
-sudo restorecon -R -v /usr/bin/rsync
-sudo setsebool -P postgresql_can_rsync on
-</pre>
-                        <li>Just disable SELinux if you don’t need it (did this in VM already)</li>
-                        <ul>
-                            <li>Edit /etc/sysconfig/selinux</li>
-                            <li>SELINUX=disabled</li>
-                            <li>Restart server</li>
-                        </ul>
-                </section>
-
-    -->
-
-
+-->
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Monitoring</h2>
@@ -962,7 +742,7 @@ sudo setsebool -P postgresql_can_rsync on
                             <!--<li>Locks</li>-->
                             <li>WAL file count (expected vs current)</li>
                             <li>Log/query analysis - <a href="http://dalibo.github.io/pgbadger/" target="_blank">pgbadger</a></li>
-                            <li>Critical functions - <a href="https://github.com/omniti-labs/pg_jobmon" target="_blank">pg_jobmon</a></li>
+                            <li>Critical functions - <a href="https://github.com/keithf4/pg_jobmon" target="_blank">pg_jobmon</a></li>
                             <li>Prometheus - <a href="https://prometheus.io" target="_blank">https://prometheus.io</a></li>
                             <ul>
                                 <li>Trending + Monitoring</li>
@@ -1173,16 +953,17 @@ from pg_locks;
                 -->
                 <section>
                     <h2>WAL Metrics</h2>
-                    <ul id="li30" style="font-size:30px;">
-                        <li>pg_ls_waldir() normally requires superuser privileges, but can also be granted with pg_monitor.</li>
+                    <ul>
+                        <li><b><i>pg_ls_waldir()</i></b> normally requires superuser privileges, but can also be granted with pg_monitor.</li>
                         <li>Lists files in pg_wal directory</li>
                         <li>Warn if it goes above 150% for longer than 10 minutes.</li>
-                        <li>Worth investigating if >= 300%. Much higher than usual write activity.</li>
+                        <li>Worth investigating if ever &gt;= 300%. Much higher than usual write activity.</li>
                         <li>May need to increase max_wal_size</li>
                         <li>Watch for very old WAL files lingering</li>
                         <pre><code data-trim>
-                            SELECT count(*) as total_count
-                                , 100*(sum(size) / ((SELECT setting FROM pg_settings WHERE name = 'max_wal_size')::int*1024*1024)) AS perc_max
+                            SELECT count(*) AS total_count
+                                , sum(size) AS total_size_bytes
+                                , 100 * sum(size) / (SELECT setting::int*1024*1024 FROM pg_settings WHERE name = 'max_wal_size') AS perc_max
                                 , min(modification)
                             FROM pg_ls_waldir();
                         </code></pre>
@@ -1196,14 +977,23 @@ from pg_locks;
                     <h2>Failover</h2>
                     <ul>
                         <li>Stop the master</li>
-
+                        <pre><code data-trim>
+                            sudo systemctl stop postgresql-10
+                            sudo systemctl status postgresql-10
+                        </code></pre>
                         <li>Check logs to see connection errors</li>
+                        <pre><code data-trim>
+                            /var/lib/pgsql/10/replica/log/...
+                        </code></pre>
                         <li>Promote replica</li>
-
+                        <pre><code data-trim>
+                            /usr/pgsql-10/bin/pg_ctl promote -D /var/lib/pgsql/10/replica
+                        </code></pre>
                         <li>Check logs</li>
-                        <li>Write to database</li>
-
-
+                        <li>Write to database (running on port 5444)</li>
+                        <li>Check pgbackrest archiving is working with timeline switch</li>
+                        <li>Take new full backup</li>
+                    </ul>
                 </section>
 
                 <section data-background="css/theme/omniti_bg_logo.png">
