@@ -46,7 +46,7 @@
                     </p>
                     <p>
                     Senior Database Engineer @ <a href="https://www.crunchydata.com/" target="_blank">Crunchy Data Solutions</a><br/>
-                        (<a href="https://github.com/keithf4/pg_partman" target="_blank">pg_partman</a>, <a href="https://github.com/omniti-labs/pg_extractor" target="_blank">pg_extractor</a>, <a href="https://github.com/omniti-labs/mimeo" target="_blank">mimeo</a>)
+                    (<a href="https://github.com/keithf4/pg_partman" target="_blank">pg_partman</a>, <a href="https://github.com/CrunchyData/pgmonitor" target="_blank">pg_monitor</a>, <a href="https://github.com/omniti-labs/pg_extractor" target="_blank">pg_extractor</a>, <a href="https://github.com/omniti-labs/mimeo" target="_blank">mimeo</a>)
                     </p>
                     <p>
                     <br/>
@@ -132,9 +132,9 @@
                             </code></pre>
                         <li>No clusters automatically created and no initial automatic startup (Redhat policy)</li>
                         <pre><code data-trim>
-                            /usr/pgsql-10/bin/postgresql-10-setup initdb
-                            systemctl enable postgresql-10
-                            systemctl start postgresql-10
+                            sudo /usr/pgsql-10/bin/postgresql-10-setup initdb
+                            sudo systemctl enable postgresql-10
+                            sudo systemctl start postgresql-10
                         </code></pre>
                     </ul>
 
@@ -166,8 +166,11 @@
                             CREATE ROLE replication WITH LOGIN REPLICATION;</pre>
                         </code></pre>
                         <ul>
-                            <li>Set password ("password")</li>
-                            <pre><code data-trim>\password replication</code></pre>
+                            <li>Set passwords ("password")</li>
+                            <pre><code data-trim>
+                                \password training
+                                \password replication
+                            </code></pre>
                         </ul>
                     </ul>
                     </div>
@@ -241,6 +244,7 @@
                                 <li style="color:orange"><i><b>archive_timeout = 60</b></i> <span style="color:#535353">(for demo purposes, usually higher)</span></li>
                                 <li style="color:orange"><i><b>max_wal_senders = 10</b></i></li>
                                 <li style="color:orange"><i><b>wal_keep_segments = 30</b></i></li>
+                                <li style="color:orange"><i><b>hot_standby = on</b></i></li> (setting for replica)
                                 <li style="color:orange"><i><b>logging_collector = on</b></i></li>
                                 <li style="color:orange"><i><b>autovacuum_freeze_max_age = 1000000000</b></i> <span style="color:#535353">(only set this high if monitoring for wraparound. So monitor for wraparound and set it this high.)</span></li>
                             </ul>
@@ -254,8 +258,7 @@
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Configuration - postgresql.conf</h2>
-                    <div id="li30">
-                        <ul style="font-size:22px;">
+                        <ul style="font-size:21px;line-height:28px">
                             <li>Important secondary settings review (all only require reload)</li>
                             <ul>
                                 <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-wal.html#GUC-MAX-WAL-SIZE" target="_blank">max_wal_size</a> = 1GB (default; hitting this forces checkpoint)
@@ -271,6 +274,7 @@
                                     <li>%x &amp; %v can be good for transaction tracking</li>
                                 </ul>
                                 <li>log_temp_files = 4096 (kilobytes; good starting point = work_mem)</li>
+                                <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-logging.html#GUC-LOG-LOCK-WAITS" target="_blank">log_lock_waits</a> = on</li>
                                 <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-VACUUM-THRESHOLD" target="_blank">autovacuum_vacuum_threshold</a> = 500  (default too aggressive)</li>
                                 <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-ANALYZE-THRESHOLD" target="_blank">autovacuum_analyze_threshold</a> = 500  (default too aggressive)</li>
                                 <li><a href="https://www.postgresql.org/docs/10/static/runtime-config-autovacuum.html#GUC-AUTOVACUUM-VACUUM-SCALE-FACTOR" target="_blank">autovacuum_vacuum_scale_factor</a> = 0.1  (default too mild)</li>
@@ -280,7 +284,6 @@
                             <pre style="font-size:16px;">sudo systemctl restart postgresql-10</pre>
                             <li>If restart unsuccessful, check postgresql log files</li>
                         </ul>
-                    </div>
                     <aside class="notes">
                         Mention log_rotation_size & log_filename are related in how log file re-use happens. Default (%a) would reuse old log file when that day comes around again next week). If the same log_filename already exists when it goes to role over, it will overwrite. If daily & will role over in one day, add more to the log_filename (hours, minutes, seconds)
                     </aside>
@@ -342,7 +345,6 @@
                         <li>Edit replica postgresql.conf </li>
                         <pre><code data-trim>
                             port = 5444 
-                            hot_standby = on
                         </code></pre>
                         <li>Edit replica recovery.conf</li>
                         <pre><code data-trim>
@@ -683,6 +685,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Upgrading</h2>
+                    <div id="li30">
                     <ul>
                         <li>Dump/Restore</li>
                         <ul>
@@ -703,10 +706,15 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                                 <pre><code data-trim>
                                     vacuumdb --all --analyze-in-stages 
                                 </code></pre>
-                    </ul>
                             </ul>
                         </ul>
+                        <li>Logical</li>
+                        <ul>
+                            <li>More setup and some limitations, but greatly reduced or even zero downtime upgrade</li>
+                            <li><a href="https://www.postgresql.org/docs/10/static/logical-replication.html" target="_blank">native</a>, <a href="https://www.2ndquadrant.com/en/resources/pglogical/" target="_blank">pglogical</a>, <a href="https://github.com/omniti-labs/mimeo" target="_blank">mimeo</a>, <a href="https://bucardo.org/Bucardo/" target="_blank">bucardo</a>, <a href="http://www.slony.info/" target="_blank">slony</a>, etc</li>
+                        </ul>
                     </ul>
+                    </div>
                 </section>
 
 <!-- 
