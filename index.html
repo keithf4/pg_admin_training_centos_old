@@ -232,7 +232,7 @@
                             <li>Main configuration file</li>
                             <li>Important initial settings review (<i>most require restart</i>)</li>
                             <ul >
-                                <li>listen_addresses  (* = all IPs, whitelist your app servers)</li>
+                                <li>listen_addresses (defaults to localhost only; set to server IP; * = all IPs)</li>
                                 <li>max_connections (monitor active connections, <a href="https://wiki.postgresql.org/wiki/Tuning_Your_PostgreSQL_Server" target="_blank">affected by work_mem</a>)</li>
                                 <li><a href="http://www.keithf4.com/a-small-database-does-not-mean-small-shared_buffers/" target="_blank">shared_buffers</a> (8GB good starting point; leave default for training)</li>
                                 <li>work_mem (2-5MB good starting point. The more RAM the better.)</li>
