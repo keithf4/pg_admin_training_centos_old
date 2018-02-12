@@ -241,10 +241,10 @@
                                 <li>effective_cache_size (50% RAM good starting point)</li>
                                 <li style="color:orange"><i><b>archive_mode = on</b></i></li>
                                 <li style="color:orange"><i><b>archive_command = ‘/bin/true’</b></i></li>
-                                <li style="color:orange"><i><b>archive_timeout = 60</b></i> <span style="color:#535353">(for demo purposes, usually higher)</span></li>
+                                <li style="color:orange"><i><b>archive_timeout = 60</b></i> <span style="color:#535353"> (for demo purposes, usually higher)</span></li>
                                 <li style="color:orange"><i><b>max_wal_senders = 10</b></i></li>
                                 <li style="color:orange"><i><b>wal_keep_segments = 30</b></i></li>
-                                <li style="color:orange"><i><b>hot_standby = on</b></i></li> (setting for replica)
+                                <li style="color:orange"><i><b>hot_standby = on</b></i><span style="color:#535353"> (setting for replica)</span></li> 
                                 <li style="color:orange"><i><b>logging_collector = on</b></i></li>
                                 <li style="color:orange"><i><b>autovacuum_freeze_max_age = 1000000000</b></i> <span style="color:#535353">(only set this high if monitoring for wraparound. So monitor for wraparound and set it this high.)</span></li>
                             </ul>
@@ -626,7 +626,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                                 retention-full=2
                             </code></pre>
                         </ul>
-                        <li>Ensure repository folders exists with proper permissions</li>
+                        <li>Ensure repository folders exists with proper permissions. Should already be there and ready if install worked.</li>
                         <pre><code data-trim>
                             sudo mkdir /var/lib/pgbackrest
                             sudo chmod 750 /var/lib/pgbackrest/
@@ -650,6 +650,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                         <li>Reload/restart to set above options</li>
                         <pre><code data-trim>
                             sudo systemctl reload postgresql-10
+                            sudo systemctl reload postgresql-10-replica
                         </code></pre>
                         <li>Create &amp; check the stanza</li>
                         <pre><code data-trim>
@@ -682,6 +683,30 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                     </ul>
                 </section>
 
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Restore - File System (Advanced)</h2>
+                    <ul>
+                        <li>pgbackrest will restore the database to the target designated in the stanza config by default.</li>
+                        <li>In disaster recovery, this is normal. --delta option can even speed it up greatly if original data dir is still there</li>
+                        <li>For training, restore to a target folder:</li>
+                        <pre><code data-trim>
+                            sudo su - postgres 
+                            mkdir /var/lib/pgsql/10/br_restore
+                            chmod 700 /var/lib/pgsql/10/br_restore
+
+                            pgbackrest restore --stanza=main --db-path=/var/lib/pgsql/10/br_restore
+                        </code></pre>
+                        <li>Change postgresql.conf port to 5911</li>
+                        <pre><code data-trim>
+                           /usr/pgsql-10/bin/pg_ctl start -D /var/lib/pgsql/10/br_restore/ 
+                        </code></pre>
+                        <pre><code data-trim>
+                           /usr/pgsql-10/bin/pg_ctl stop -m fast -D /var/lib/pgsql/10/br_restore/ 
+                           rm -r /var/lib/pgsql/10/br_restore
+                        </code></pre>
+                    </ul>
+
+                </section>
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Upgrading</h2>
