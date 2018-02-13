@@ -109,6 +109,11 @@
                         <li>Applications -&gt; System Tools -&gt; Terminal</li>
                         <li>Internet should work within VM (if it works externally)</li>
                         <li>Clipboard should work between host & VM</li>
+                        <li><b><i>vim</i></b> &amp; <b><i>nano</i></b> for CLI file editing. For GUI:</li>
+                        <pre><code data-trim>
+                            sudo gedit &amp;
+                        </code></pre>
+                            then close that terminal to avoid spam
                         <li>Take snapshot now & as many times as you'd like along the way</li>
                     </ul>
                 </section>
@@ -135,6 +140,8 @@
                             sudo /usr/pgsql-10/bin/postgresql-10-setup initdb
                             sudo systemctl enable postgresql-10
                             sudo systemctl start postgresql-10
+                            systemctl status postgresql-10
+                        </code></pre>
                         </code></pre>
                     </ul>
 
@@ -186,7 +193,7 @@
                         <li style="margin:0; padding:0"><a href="http://www.postgresql.org/docs/10/static/auth-pg-hba-conf.html" target="_blank">http://www.postgresql.org/docs/10/static/auth-pg-hba-conf.html</a></li>
                         <li>Find where your data directory is</li>
                         <pre><code data-trim>
-                            training=# show data_directory;
+                            show data_directory;
                         </code></pre>
                         <li>Open pg_hba.conf file located in data directory (must be postgres user)</li>
                         <li>All authentication into cluster is controlled by this file</li>
@@ -204,7 +211,7 @@
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Configuration - pg_hba.conf</h2>
                     <ul>
-                        <li>Create following lines for later:</li>
+                        <li>Add following lines above other active ones (for later):</li>
                         <pre><code data-trim>
                             # TYPE  DATABASE       USER           ADDRESS         METHOD
                             host    replication    replication    127.0.0.1/32    md5
@@ -243,6 +250,7 @@
                                 <li style="color:orange"><i><b>archive_command = ‘/bin/true’</b></i></li>
                                 <li style="color:orange"><i><b>archive_timeout = 60</b></i> <span style="color:#535353"> (for demo purposes, usually higher)</span></li>
                                 <li style="color:orange"><i><b>max_wal_senders = 10</b></i></li>
+                                <li style="color:orange"><i><b>max_replication_slots = 10</b></i></li>
                                 <li style="color:orange"><i><b>wal_keep_segments = 30</b></i></li>
                                 <li style="color:orange"><i><b>hot_standby = on</b></i><span style="color:#535353"> (setting for replica)</span></li> 
                                 <li style="color:orange"><i><b>logging_collector = on</b></i></li>
@@ -251,7 +259,9 @@
                         </ul>
                     </div>
                     <aside class="notes">
-                        Discuss WAL files and what they are
+                        - Discuss WAL files and what they are
+                        - Mention delay settings and what they’re for near the hot_standby setting
+                    </aside>
                     </aside>
                 </section>
 
@@ -335,13 +345,28 @@
                         <pre><code data-trim>
                             host    replication    replication    127.0.0.1/32    md5
                         </code></pre>
+                        <li>Create a replication slot</li>
+                        <pre><code data-trim>
+                            SELECT * FROM pg_create_physical_replication_slot('training_replica');
+                            SELECT * FROM pg_replication_slots;
+                        </code></pre>
                         <li>Use pg_basebackup to create copy of master (as postgres system user)</li>
                         <ul>
                             <li><a href="http://www.postgresql.org/docs/10/static/app-pgbasebackup.html" target="_blank">http://www.postgresql.org/docs/10/static/app-pgbasebackup.html</a></li>
                         <pre><code data-trim>
-                            sudo su - postgres
-                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/replica -R -Xs -P -v
+                            pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/replica -R -Xs -P -S training_replica -v
+
+                            SELECT * FROM pg_replication_slots;
                         </code></pre>
+                        </ul>
+                    </ul>
+                </section>
+
+
+				<section data-background="css/theme/crunchy_white_bg.png">
+                    <h2>Replication - Basic</h2>
+                    <ul style="font-size:30px;">
+
                         <li>Edit replica postgresql.conf </li>
                         <pre><code data-trim>
                             port = 5444 
@@ -350,13 +375,11 @@
                         <pre><code data-trim>
                             standby_mode = 'on'
                             primary_conninfo = 'host=127.0.0.1 port=5432 user=replication password=password'
+                            primary_slot_name = 'training_replica'
                             recovery_target_timeline='latest'
                         </code></pre>
 
                     </ul>
-                    <aside class="notes">
-                        Mention delay settings and what they’re for near the hot_standby setting
-                    </aside>
                 </section>
 
                 <!-- VM Snapshot -->
@@ -395,7 +418,8 @@
                         </code></pre>
                         <li>Check from master</li>
                         <pre><code data-trim>
-                            select * from pg_stat_replication;
+                            SELECT * FROM pg_stat_replication;
+                            SELECT * FROM pg_replication_slots;
                         </code></pre>
                         <li>Create an object and make sure it appears on replica (as training user)</li>
                         <pre><code data-trim>
@@ -422,7 +446,7 @@
                                 <li>Dumps all databases in cluster in plaintext format</li>
                                 <li>Can dump only cluster-wide data: roles, tablespaces</li>
                                 <pre><code data-trim>
-                                    pg_dumpall -g -f /home/training/globals.sql -v
+                                    pg_dumpall -g -f /home/training/globals.sql
                                 </code></pre>
                                 <li>Use psql to restore backup</li>
                                 <li>Restores entire cluster. No object filtering options.</li>
@@ -568,8 +592,10 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                             <pre><code data-trim>
                                 /usr/pgsql-10/bin/pg_ctl -D /home/training/mydb2 start
 
-                                psql -h localhost -p 5888 postgres
+                                psql -h localhost -p 5888
                                 (requires hba fix)
+
+                                psql -h /home/training/mydb2/ -p 5888
                             </code></pre>
                         </ul>
                     </div>
@@ -594,7 +620,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Backup - File System (Advanced)</h2>
                     <ul>
-                        <li>PGBackRest - <a href="http://pgbackrest.org" target="_blank">http://pgbackrest.org</a></li>
+                        <li>pgBackRest - <a href="http://pgbackrest.org" target="_blank">http://pgbackrest.org</a></li>
                         <li>Point-in-Time Recovery (PITR)</li>
                         <li>Incremental &amp; Differential Backups</li>
                         <li>Parallel Backup &amp; Restore</li>
@@ -608,7 +634,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                     <h2>Backup - File System (Advanced)</h2>
                     <div id="li30">
                     <ul>
-                        <li>Install pgbackrest</li>
+                        <li>Install pgBackRest</li>
                         <pre><code data-trim>
                             sudo yum install pgbackrest.x86_64
                         </code></pre>
@@ -631,6 +657,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                             sudo mkdir /var/lib/pgbackrest
                             sudo chmod 750 /var/lib/pgbackrest/
                             sudo chown postgres:postgres /var/lib/pgbackrest
+                            sudo chown postgres:postgres /var/log/pgbackrest
                         </code></pre>
                     </ul>
                     </div>
@@ -639,7 +666,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Backup - File System (Advanced)</h2>
                     <ul>
-                        <li>Set primary &amp; replica postgresql.conf options for WAL archiving</li>
+                        <li>Set primary postgresql.conf options for WAL archiving</li>
                         <pre><code data-trim>
                             archive_command = 'pgbackrest --stanza=main archive-push %p'
                             archive_mode = on
@@ -647,6 +674,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                             max_wal_senders = 10 
                             wal_level = replica
                         </code></pre>
+                        <li>Normally set above exactly the same on replica, but can't in VM</a>
                         <li>Reload/restart to set above options</li>
                         <pre><code data-trim>
                             sudo systemctl reload postgresql-10
@@ -686,7 +714,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Restore - File System (Advanced)</h2>
                     <ul>
-                        <li>pgbackrest will restore the database to the target designated in the stanza config by default.</li>
+                        <li>pgBackRest will restore the database to the target designated in the stanza config by default.</li>
                         <li>In disaster recovery, this is normal. --delta option can even speed it up greatly if original data dir is still there</li>
                         <li>For training, restore to a target folder:</li>
                         <pre><code data-trim>
@@ -710,8 +738,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Upgrading</h2>
-                    <div id="li30">
-                    <ul>
+                    <ul id="li30" style="font-size:25px;">
                         <li>Dump/Restore</li>
                         <ul>
                             <li>Works on all versions</li>
@@ -739,7 +766,6 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                             <li><a href="https://www.postgresql.org/docs/10/static/logical-replication.html" target="_blank">native</a>, <a href="https://www.2ndquadrant.com/en/resources/pglogical/" target="_blank">pglogical</a>, <a href="https://github.com/omniti-labs/mimeo" target="_blank">mimeo</a>, <a href="https://bucardo.org/Bucardo/" target="_blank">bucardo</a>, <a href="http://www.slony.info/" target="_blank">slony</a>, etc</li>
                         </ul>
                     </ul>
-                    </div>
                 </section>
 
 <!-- 
@@ -1024,8 +1050,10 @@ from pg_locks;
                         </code></pre>
                         <li>Check logs</li>
                         <li>Write to database (running on port 5444)</li>
-                        <li>Check pgbackrest archiving is working with timeline switch</li>
-                        <li>Take new full backup</li>
+                        <ul>
+                            <li>BONUS: Fix pgbackrest to work on replica</li>
+                            <li>Take new full backup</li>
+                        </ul>
                     </ul>
                 </section>
 
