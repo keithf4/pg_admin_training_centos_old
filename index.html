@@ -250,8 +250,8 @@
                                 <li style="color:orange"><i><b>archive_command = ‘/bin/true’</b></i></li>
                                 <li style="color:orange"><i><b>archive_timeout = 60</b></i> <span style="color:#535353"> (for demo purposes, usually higher)</span></li>
                                 <li style="color:orange"><i><b>max_wal_senders = 10</b></i></li>
-                                <li style="color:orange"><i><b>max_replication_slots = 10</b></i></li>
                                 <li style="color:orange"><i><b>wal_keep_segments = 30</b></i></li>
+                                <li style="color:orange"><i><b>max_replication_slots = 10</b></i></li>
                                 <li style="color:orange"><i><b>hot_standby = on</b></i><span style="color:#535353"> (setting for replica)</span></li> 
                                 <li style="color:orange"><i><b>logging_collector = on</b></i></li>
                                 <li style="color:orange"><i><b>autovacuum_freeze_max_age = 1000000000</b></i> <span style="color:#535353">(only set this high if monitoring for wraparound. So monitor for wraparound and set it this high.)</span></li>
@@ -325,7 +325,7 @@
                                 <ul>
                                     <li>2 billion transactions newer than current & 2 billion older</li>
                                 </ul>
-                                <li>VACUUM resets all row XIDs to that of the oldest transaction or FrozenXID if possible.</li>
+                                <li>VACUUM marks rows as <b><i>frozen</i></b>, setting the XID such that it will be visible to all future transactions</li>
                                 <li>Reserved, FrozenXID always older than all XIDs</li>
                                 <ul>
                                     <li>VACUUM FREEZE tables rarely written to so that vacuum can skip pages and run more efficiently (9.6+ feature)</li>
@@ -424,9 +424,11 @@
                         <li>Create an object and make sure it appears on replica (as training user)</li>
                         <pre><code data-trim>
                             training=# CREATE TABLE testing (
-                                id serial primary key, 
+                                id bigint primary key, 
                                 stuff text, 
                                 inserted_at timestamptz default now());
+
+                            training=# INSERT INTO testing (id) values (generate_series(1,1000));
                         </code></pre>
                         <li>Connect to replica</li>
                         <pre><code data-trim>
@@ -539,37 +541,6 @@
                         </ul>
                     </ul>    
                 </section>
-<!-- OLD OMNIPITR method kept for record. Remove at end 
-                <section data-background="css/theme/omniti_bg_logo.png">
-                    <h2>Backup - File System</h2>
-                    <div id="li30">
-                        <ul style="font-size:22px;">
-                            <li>Basic file system backup</li>
-                            <ul>
-                                <li>pg_start_backup() -&gt; copy all files -&gt; pg_stop_backup()</li>
-                            </ul>
-                            <li>Omnipitr</li>
-                            <ul>
-                                <li>Set dst-backup (-db) option in archive_command (location does not exist)</li>
-<pre style="font-size:18px">
-archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data -dl gzip=/var/lib/pgsql/9.3/backups/walarchive -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-archive-^Y-^m-^d.log -v -s /var/lib/pgsql/9.3/data/pg_log/state -db /var/lib/pgsql/9.3/backups/dst-backup "%p"'
-</pre>
-                                <ul>
-                                    <li>When backup is run, this dir is created to hold WAL files needed for consistent backup</li>
-                                    <li>Same use as -X option to pg_basebackup</li>
-                                </ul>
-                                <li>pg_reload_conf()</li>
-                                <li>Need to install Perl SHA library (as training user)</li>
-<pre style="font-size:18px">sudo yum install perl-Digest-SHA.x86_64</pre>
-                                <li>Run omnipitr-backup-master (as postgres system user)</li>
-<pre style="font-size:18px">
-/opt/omnipitr/bin/omnipitr-backup-master -D /var/lib/pgsql/9.3/data -x /var/lib/pgsql/9.3/backups/dst-backup -dl gzip=/var/lib/pgsql/9.3/backups -l /var/lib/pgsql/9.3/data/pg_log/omnipitr-backup-master-^Y-^m-^d.log -v -dg SHA-512
-</pre>
-                            </ul>
-                        </ul>    
-                    </div>
-                </section>
-                -->
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Restore - File System (Basic)</h2>
@@ -670,7 +641,6 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                         <pre><code data-trim>
                             archive_command = 'pgbackrest --stanza=main archive-push %p'
                             archive_mode = on
-                            listen_addresses = '*'
                             max_wal_senders = 10 
                             wal_level = replica
                         </code></pre>
