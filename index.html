@@ -164,19 +164,19 @@
                         </ul>
                         <li>Create a role &amp; database for yourself</li>
                         <pre><code data-trim>
-                            CREATE ROLE training WITH LOGIN SUPERUSER;
-                            CREATE DATABASE training;
+                            postgres=# CREATE ROLE training WITH LOGIN SUPERUSER;
+                            postgres=# CREATE DATABASE training;
                         </code></pre>
                         <li>Should now be able to log into PostgreSQL as your training user</li>
                         <li>Create replication role for later</li>
                         <pre><code data-trim>
-                            CREATE ROLE replication WITH LOGIN REPLICATION;</pre>
+                            training=# CREATE ROLE replication WITH LOGIN REPLICATION;</pre>
                         </code></pre>
                         <ul>
                             <li>Set passwords ("password")</li>
                             <pre><code data-trim>
-                                \password training
-                                \password replication
+                                training=# \password training
+                                training=# \password replication
                             </code></pre>
                         </ul>
                     </ul>
@@ -193,7 +193,7 @@
                         <li style="margin:0; padding:0"><a href="http://www.postgresql.org/docs/10/static/auth-pg-hba-conf.html" target="_blank">http://www.postgresql.org/docs/10/static/auth-pg-hba-conf.html</a></li>
                         <li>Find where your data directory is</li>
                         <pre><code data-trim>
-                            show data_directory;
+                            training=# show data_directory;
                         </code></pre>
                         <li>Open pg_hba.conf file located in data directory (must be postgres user)</li>
                         <li>All authentication into cluster is controlled by this file</li>
@@ -347,8 +347,8 @@
                         </code></pre>
                         <li>Create a replication slot</li>
                         <pre><code data-trim>
-                            SELECT * FROM pg_create_physical_replication_slot('training_replica');
-                            SELECT * FROM pg_replication_slots;
+                            training=# SELECT * FROM pg_create_physical_replication_slot('training_replica');
+                            training=# SELECT * FROM pg_replication_slots;
                         </code></pre>
                         <li>Use pg_basebackup to create copy of master (as postgres system user)</li>
                         <ul>
@@ -356,7 +356,7 @@
                         <pre><code data-trim>
                             pg_basebackup -h 127.0.0.1 -U replication -D /var/lib/pgsql/10/replica -R -Xs -P -S training_replica -v
 
-                            SELECT * FROM pg_replication_slots;
+                            training=# SELECT * FROM pg_replication_slots;
                         </code></pre>
                         </ul>
                     </ul>
@@ -418,12 +418,12 @@
                         </code></pre>
                         <li>Check from master</li>
                         <pre><code data-trim>
-                            SELECT * FROM pg_stat_replication;
-                            SELECT * FROM pg_replication_slots;
+                            training=# SELECT * FROM pg_stat_replication;
+                            training=# SELECT * FROM pg_replication_slots;
                         </code></pre>
                         <li>Create an object and make sure it appears on replica (as training user)</li>
                         <pre><code data-trim>
-                            CREATE TABLE testing (
+                            training=# CREATE TABLE testing (
                                 id serial primary key, 
                                 stuff text, 
                                 inserted_at timestamptz default now());
@@ -817,7 +817,7 @@ archive_command = '/opt/omnipitr/bin/omnipitr-archive -D /var/lib/pgsql/9.3/data
                         <ul style="font-size:25px;">
                             <li>Monitor from replica (seconds behind since last WAL replay)</li>
                             <pre><code data-trim>
-                                SELECT extract(epoch from now() - pg_last_xact_replay_timestamp()) AS replica_lag
+                                SELECT extract(epoch from now() - pg_last_xact_replay_timestamp()) AS replica_lag;
                             </code></pre>
                             <li>Monitor from master if streaming (bytes behind)</li>
                             <pre><code data-trim>
@@ -1050,13 +1050,18 @@ from pg_locks;
                         </code></pre>
                         <li>Check logs</li>
                         <li>Write to database (running on port 5444)</li>
-                        <ul>
-                            <li>BONUS: Fix pgbackrest to work on replica</li>
-                            <li>Take new full backup</li>
-                        </ul>
                     </ul>
                 </section>
+<!--
+                <section>
+                - Fix backrest to work on the replica
+                - Set up replication with pgbackrest
+                    - Do a delta restore of the replica database to the old main directory
+                    - Pass the recovery.conf options to the restore command so it creates it automatically
+                    - Check if the replication slot was made on replica
 
+                </section>
+-->
                 <section data-background="css/theme/omniti_bg_logo.png">
                     <h1>Final Questions?</h1>
                 </section>
