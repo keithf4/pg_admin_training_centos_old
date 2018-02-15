@@ -197,6 +197,7 @@
                         </code></pre>
                         <li>Open pg_hba.conf file located in data directory (must be postgres user)</li>
                         <li>All authentication into cluster is controlled by this file</li>
+                        <li>Secure SSL configurations possible</li>
                         <li>Evaluated in order top-down</li>
                         <li>Default only allows local system users with matching role names (peer)</li>
                         <li><b style="color:red">Avoid "trust" if at all possible</b></li>
@@ -302,38 +303,36 @@
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Vacuums & Freezing</h2>
-                    <div id="li30">
-                        <ul style="font-size:25px;">
-                            <li><a href="http://www.postgresql.org/docs/10/static/routine-vacuuming.html" target="_blank">http://www.postgresql.org/docs/10/static/routine-vacuuming.html</a></li>
-                            <li>Multi-Version Currency Control (MVCC)</li>
+                    <ul style="font-size:23px;line-height:28px">
+                        <li><a href="http://www.postgresql.org/docs/10/static/routine-vacuuming.html" target="_blank">http://www.postgresql.org/docs/10/static/routine-vacuuming.html</a></li>
+                        <li>Multi-Version Currency Control (MVCC)</li>
+                        <ul>
+                            <li>Updated/Deleted rows not actually deleted. Just marked unavailable.</li>
+                            <li>Vacuum marks unavailable rows as re-usable space. <a href="http://www.keithf4.com/checking-for-postgresql-bloat/" target="_blank">Leads to bloat.</a></li>
+                            <li>VACUUM FULL recovers disk space but locks table with full table rewrite</li>
+                            <li><a href="http://reorg.github.io" target="_blank">pg_repack</a> - Extension to reclaim disk space with minimal lock</li>
+                            <li>Don’t overuse VACUUM FULL or pg_repack. </li>
                             <ul>
-                                <li>Updated/Deleted rows not actually deleted. Just marked unavailable.</li>
-                                <li>Vacuum marks unavailable rows as re-usable space. <a href="http://www.keithf4.com/checking-for-postgresql-bloat/" target="_blank">Leads to bloat.</a></li>
-                                <li>VACUUM FULL recovers disk space but locks table with full table rewrite</li>
-                                <li><a href="http://reorg.github.io" target="_blank">pg_repack</a> - Extension to reclaim disk space with minimal lock</li>
-                                <li>Don’t overuse VACUUM FULL or pg_repack. </li>
-                                <ul>
-                                    <li>Reusable space can be more efficient than [re]allocating new pages</li>
-                                </ul>
-                            </ul>
-                            <li>Transaction ID Wraparound</li>
-                            <ul>
-                                <li>Every row has transaction id (XID) value</li>
-                                <li>Every new write transaction increments cluster-wide XID</li>
-                                <li>Determines visibility to current transactions</li>
-                                <li>32-bit number, so wraparound is possible after 4 billion transactions</li>
-                                <ul>
-                                    <li>2 billion transactions newer than current & 2 billion older</li>
-                                </ul>
-                                <li>VACUUM marks rows as <b><i>frozen</i></b>, setting the XID such that it will be visible to all future transactions</li>
-                                <li>Reserved, FrozenXID always older than all XIDs</li>
-                                <ul>
-                                    <li>VACUUM FREEZE tables rarely written to so that vacuum can skip pages and run more efficiently (9.6+ feature)</li>
-                                </ul>
-                                <li>autovacuum_freeze_max_age - when table XID value reaches this, a VACUUM is forced (even if autovac turned off).</li>
+                                <li>Reusable space can be more efficient than [re]allocating new pages</li>
                             </ul>
                         </ul>
-                    </div>
+                        <li>Transaction ID Wraparound</li>
+                        <ul>
+                            <li>Every row has transaction id (XID) value</li>
+                            <li>Every new write transaction increments cluster-wide XID</li>
+                            <li>Determines visibility to current transactions</li>
+                            <li>32-bit number, so wraparound is possible after 4 billion transactions</li>
+                            <ul>
+                                <li>2 billion transactions newer than current & 2 billion older</li>
+                            </ul>
+                            <li>VACUUM marks rows as <b><i>frozen</i></b>, setting the XID such that it will be visible to all future transactions</li>
+                            <li>Reserved, FrozenXID always older than all XIDs</li>
+                            <ul>
+                                <li>VACUUM FREEZE tables rarely written to so that vacuum can skip pages and run more efficiently (9.6+ feature)</li>
+                            </ul>
+                            <li>autovacuum_freeze_max_age - when table XID value reaches this, a VACUUM is forced (even if autovac turned off).</li>
+                        </ul>
+                    </ul>
                 </section>
 
                 <!-- VM Snapshot -->
@@ -461,6 +460,7 @@
                                 <li>Use pg_restore to restore binary backups</li>
                                 <li>Provides binary backup format that can make restore easier</li>
                                 <li>Can restore individual schemas or tables instead of entire cluster</li>
+                                <li><b><i>--section</i></b> option can break up dump into stages</li>
                                 <pre><code data-trim>
                                     pg_dump -Fc training -f /home/training/training.pgr -v
                                 </code></pre>
