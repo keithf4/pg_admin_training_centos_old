@@ -451,14 +451,13 @@
                                 </code></pre>
                                 <li>Use psql to restore backup</li>
                                 <li>Restores entire cluster. No object filtering options.</li>
-                                <li>Dump only roles and/or tablespaces (cluster-wide objects)</li>
                             </ul>
                             <li>pg_dump</li>
                             <ul>
                                 <li>Backs up individual databases in cluster</li>
                                 <li>Does not back up roles or tablespaces, but does back up object privileges of those roles.</li>
-                                <li>Use pg_restore to restore binary backups</li>
                                 <li>Provides binary backup format that can make restore easier</li>
+                                <li>Use pg_restore to restore binary backups</li>
                                 <li>Can restore individual schemas or tables instead of entire cluster</li>
                                 <li><b><i>--section</i></b> option can break up dump into stages</li>
                                 <pre><code data-trim>
@@ -603,8 +602,7 @@
 
 				<section data-background="css/theme/crunchy_white_bg.png">
                     <h2>Backup - File System (Advanced)</h2>
-                    <div id="li30">
-                    <ul>
+                    <ul style="font-size:24px;line-height:28px">
                         <li>Install pgBackRest</li>
                         <pre><code data-trim>
                             sudo yum install pgbackrest.x86_64
@@ -631,7 +629,6 @@
                             sudo chown postgres:postgres /var/log/pgbackrest
                         </code></pre>
                     </ul>
-                    </div>
                 </section>
 
 				<section data-background="css/theme/crunchy_white_bg.png">
@@ -754,12 +751,12 @@
                         <ul style="font-size:25px;">
                             <li>Replication status</li>
                             <li>Active/Idle connections. Idle in transaction session times.</li>
+                            <li>Transaction ID Wraparound</li> 
                             <li>Table statistics</li>
                             <ul>
                                 <li>Sequential scans vs index scans</li>
                                 <li>Insert/Update/Delete rate</li>
                             </ul>
-                            <li>Max oldest autovac freeze age</li> 
                             <li>Transactions</li>
                             <ul>
                                 <li>Commits vs Rollbacks</li>
@@ -1036,7 +1033,17 @@ from pg_locks;
                     <h1>Final Questions?</h1>
                 </section>
 
+                 <section data-background="css/theme/crunchy_white_bg.png">
+                     <h1>Thank you!</h1>
+                    <ul>
+                        <li>PostgreSQL Home Page - <a href="http://www.postgresql.org" target="_blank">postgresql.org</a></li>
+                        <li>Planet PostgreSQL Community News Feed - <a href="http://planet.postgresql.org" target="_blank">planet.postgresql.org</a></li>
+                        <li>PostgreSQL Extension Network - <a href="http://pgxn.org" target="_blank">pgxn.org</a></li>
+                        <li>Crunchy Data Solutions, Inc - <a href="http://www.crunchydata.com" target="_blank">crunchydata.com</a></li>
+                        <li>Make cool presentations like this - <a href="https://github.com/hakimel/reveal.js/" target="_blank">reveal.js</a></li>
+                    </ul>
 
+                 </section>
 
 			</div>
 		</div>
