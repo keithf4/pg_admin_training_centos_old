@@ -1,1 +1,1 @@
-Presentation created using https://github.com/hakimel/reveal.js
+Presentation created using https://revealjs.com
