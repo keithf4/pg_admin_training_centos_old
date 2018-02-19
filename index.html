@@ -333,7 +333,7 @@
                         <ul>
                             <li>Updated/Deleted rows not actually deleted. Just marked unavailable.</li>
                             <li>Vacuum marks unavailable rows as re-usable space. <a href="http://www.keithf4.com/checking-for-postgresql-bloat/" target="_blank">Leads to bloat.</a></li>
-                            <li>VACUUM FULL recovers disk space but locks table with full table rewrite</li>
+                            <li>VACUUM FULL recovers disk space but locks table for full table rewrite</li>
                             <li><a href="http://reorg.github.io" target="_blank">pg_repack</a> - Extension to reclaim disk space with minimal lock</li>
                             <li>Don’t overuse VACUUM FULL or pg_repack. </li>
                             <ul>
@@ -394,7 +394,7 @@
                         <pre><code data-trim>
                             port = 5444 
                         </code></pre>
-                        <li>Edit replica recovery.conf</li>
+                        <li>Edit replica <a href="https://www.postgresql.org/docs/10/static/recovery-config.html" target="_blank">recovery.conf</a></li>
                         <pre><code data-trim>
                             standby_mode = 'on'
                             primary_conninfo = 'host=127.0.0.1 port=5432 user=replication password=password'
@@ -456,6 +456,8 @@
                         <li>Connect to replica</li>
                         <pre><code data-trim>
                             psql -p 5444
+
+                            training=# SELECT pg_is_in_recovery();
                         </code></pre>
                     </ul>
                 </section>
@@ -631,7 +633,7 @@
                         <pre><code data-trim>
                             sudo yum install pgbackrest.x86_64
                         </code></pre>
-                        <li>Create a stanza</li>
+                        <li>Configure a stanza</li>
                         <ul>
                             <li>Defines where PG cluster is located, how it will be backed up, archiving options, etc</li>
                             <li>One stanza on db server. Many stanzas on a dedicated backup machine.</li>
@@ -669,7 +671,6 @@
                         <li>Reload/restart to set above options</li>
                         <pre><code data-trim>
                             sudo systemctl reload postgresql-10
-                            sudo systemctl reload postgresql-10-replica
                         </code></pre>
                         <li>Create &amp; check the stanza</li>
                         <pre><code data-trim>
@@ -814,8 +815,8 @@
                             <pre><code data-trim>
                                 SELECT client_hostname
                                     , client_addr
-                                    , pg_wal_location_diff(pg_stat_replication.sent_location, 
-                                        pg_stat_replication.replay_location) AS byte_lag
+                                    , pg_wal_lsn_diff(pg_stat_replication.sent_lsn, 
+                                        pg_stat_replication.replay_lsn) AS byte_lag
                                 FROM pg_stat_replication;
                             </code></pre>
                         </ul>
